@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>加密解密工具</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #fafafa;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            color: #333;
+            padding: 10px; /* Padding for smaller screens */
+        }
+
+        .container, .login-container {
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            width: 90%; /* Full width on small screens */
+            max-width: 400px; /* Max width on larger screens */
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+
+        @media (min-width: 768px) {
+            .container, .login-container {
+                width: 50%; /* Wider on tablets and desktops */
+                padding: 25px;
+            }
+        }
+
+        .container:hover, .login-container:hover {
+            transform: translateY(-5px);
+        }
+
+        h1 {
+            color: #2c3e50;
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+
+        input, textarea {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border: 1px solid #e0e0e0;
+            border-radius: 5px;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+
+        input[type="password"], input[type="text"], input[type="text"]:focus {
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        input[type="password"]:focus, input[type="text"]:focus {
+            border-color: #3498db;
+            box-shadow: 0 0 5px rgba(52, 152, 219, 0.5);
+            outline: none;
+        }
+
+        button {
+            width: 100%; /* Full width on mobile */
+            padding: 12px;
+            margin: 5px 0; /* Space between buttons */
+            cursor: pointer;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            transition: background-color 0.3s, transform 0.1s ease;
+        }
+
+        @media (min-width: 480px) {
+            button {
+                width: calc(33.33% - 10px); /* Three buttons across on larger screens */
+                margin: 5px;
+            }
+        }
+
+        button:hover {
+            background-color: #2980b9;
+            transform: scale(1.05);
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        textarea {
+            background-color: #f8f9fa;
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        p {
+            font-size: 0.9em;
+            color: #7f8c8d;
+            margin: 10px 0;
+        }
+
+        .count {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <h1>登录</h1>
+        <input type="password" id="loginPassword" placeholder="输入登录密码">
+        <button onclick="login()">登录</button>
+    </div>
+
+    <div class="container hidden" id="mainContent">
+        <h1>密码加密/解密</h1>
+        <input type="password" id="password" placeholder="输入密码">
+        <input type="text" id="salt" placeholder="输入盐值（任意字符串）">
+        <input type="text" id="plaintext" placeholder="要加密的文本">
+        <div>
+            <button onclick="encrypt()">加密</button>
+            <button onclick="decrypt()">解密</button>
+            <button onclick="reset()">重置</button>
+        </div>
+        <textarea id="ciphertext"  placeholder="加密/解密后的文本"></textarea>
+        <p>加密次数: <span id="encryptCount" class="count">0</span></p>
+        <p>解密次数: <span id="decryptCount" class="count">0</span></p>
+    </div>
+
+    <script>
+        let isLoggedIn = false;
+        let encryptCount = 0;
+        let decryptCount = 0;
+
+        function login() {
+            const loginPassword = document.getElementById('loginPassword').value;
+            const correctPassword = "hello39"; // Change this to your desired password
+            
+            if (loginPassword === correctPassword) {
+                document.querySelector('.login-container').classList.add('hidden');
+                document.getElementById('mainContent').classList.remove('hidden');
+                isLoggedIn = true;
+            } else {
+                alert("密码错误，请重试。");
+            }
+        }
+
+        // Add this function to handle Enter key press
+        document.getElementById('loginPassword').addEventListener('keypress', function(event) {
+            // If the user presses the "Enter" key on the keyboard
+            if (event.key === "Enter") {
+                // Cancel the default action, if needed
+                event.preventDefault();
+                // Trigger the login button click
+                login();
+            }
+        });
+
+        // Helper function to convert string to hexadecimal
+        function stringToHex(str) {
+            return Array.from(str).reduce((hex, c) => 
+                hex + c.charCodeAt(0).toString(16).padStart(2, '0'), ''
+            );
+        }
+
+        // 加密函数
+        async function encrypt() {
+            if (!isLoggedIn) {
+                alert("请先登录。");
+                return;
+            }
+
+            const password = document.getElementById('password').value;
+            const saltString = document.getElementById('salt').value;
+            const plaintext = document.getElementById('plaintext').value || document.getElementById('ciphertext').value;
+            
+            if (!password || !saltString || !plaintext) {
+                alert("请输入密码、盐值和文本。");
+                return;
+            }
+
+            try {
+                const saltHex = stringToHex(saltString);
+                const salt = new Uint8Array(saltHex.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
+                const key = await deriveKey(password, salt);
+                const iv = crypto.getRandomValues(new Uint8Array(12));
+                
+                const encoded = new TextEncoder().encode(plaintext);
+                
+                const encrypted = await window.crypto.subtle.encrypt(
+                    { name: "AES-GCM", iv: iv },
+                    key,
+                    encoded
+                );
+
+                const encryptedArray = Array.from(new Uint8Array(encrypted));
+                const ivArray = Array.from(iv);
+
+                const combined = ivArray.concat(encryptedArray);
+
+                document.getElementById('ciphertext').value = btoa(String.fromCharCode.apply(null, combined));
+                document.getElementById('plaintext').value = '';
+
+                encryptCount++;
+                document.getElementById('encryptCount').textContent = encryptCount;
+            } catch (error) {
+                console.error("加密失败:", error);
+                alert("加密失败。请重试。");
+            }
+        }
+
+        // 解密函数
+        async function decrypt() {
+            if (!isLoggedIn) {
+                alert("请先登录。");
+                return;
+            }
+
+            // ... (rest of the decrypt function remains unchanged from previous version)
+            const password = document.getElementById('password').value;
+            const saltString = document.getElementById('salt').value;
+            const ciphertext = document.getElementById('ciphertext').value;
+
+            if (!password || !saltString || !ciphertext) {
+                alert("请输入密码、盐值和加密后的文本。");
+                return;
+            }
+
+            try {
+                const saltHex = stringToHex(saltString);
+                const salt = new Uint8Array(saltHex.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
+                const key = await deriveKey(password, salt);
+                const combined = new Uint8Array(atob(ciphertext).split('').map(c => c.charCodeAt(0)));
+                const iv = combined.slice(0, 12);
+                const data = combined.slice(12);
+
+                const decrypted = await window.crypto.subtle.decrypt(
+                    { name: "AES-GCM", iv: iv },
+                    key,
+                    data
+                );
+
+                document.getElementById('plaintext').value = new TextDecoder().decode(decrypted);
+                document.getElementById('ciphertext').value = '';
+
+                decryptCount++;
+                document.getElementById('decryptCount').textContent = decryptCount;
+            } catch (error) {
+                console.error("解密失败:", error);
+                alert("解密失败。请检查密码、盐值或加密文本。");
+            }
+        }
+
+        // 从密码和盐值派生密钥
+        async function deriveKey(password, salt) {
+            // ... (unchanged from previous version)
+            const iterations = 1000009;
+
+            const keyMaterial = await window.crypto.subtle.importKey(
+                "raw",
+                new TextEncoder().encode(password),
+                {name: "PBKDF2"},
+                false,
+                ["deriveBits", "deriveKey"]
+            );
+
+            return await window.crypto.subtle.deriveKey(
+                {
+                    "name": "PBKDF2",
+                    salt: salt,
+                    "iterations": iterations,
+                    "hash": "SHA-256"
+                },
+                keyMaterial,
+                { "name": "AES-GCM", "length": 256},
+                true,
+                ["encrypt", "decrypt"]
+            );
+        }
+
+        // 重置函数
+        function reset() {
+            if (!isLoggedIn) {
+                alert("请先登录。");
+                return;
+            }
+
+            // ... (rest of the reset function remains unchanged from previous version)
+            document.getElementById('password').value = '';
+            document.getElementById('salt').value = '';
+            document.getElementById('plaintext').value = '';
+            document.getElementById('ciphertext').value = '';
+            encryptCount = 0;
+            decryptCount = 0;
+            document.getElementById('encryptCount').textContent = encryptCount;
+            document.getElementById('decryptCount').textContent = decryptCount;
+        }
+        /**
+         * 
+         *  js如何实现对密码的加密解密，安全要求要高，可以断网处理
+         * Key Points:
+            Password Input: Never store passwords in plain text. Here, we derive the key each time from the password input.
+            PBKDF2: This adds a layer of security by making key derivation computationally expensive.
+            AES-GCM: Provides both confidentiality and authenticity. Each encryption uses a new IV to ensure unique ciphertexts even with the same plaintext and key.
+            Offline Capability: This setup works without internet since all operations are done client-side. However, remember to handle key storage securely in real applications.
+            Error Handling: Basic error handling is included to give feedback to the user.
+            Security Notes: 
+            Salt: In a real application, salt should be unique for each user and stored securely alongside the encrypted data.
+            Iterations: The number of iterations for PBKDF2 should be as high as performance allows.
+            Key Management: Never store keys or passwords in clear text. In real apps, consider using secure local storage solutions or hardware security modules if available.
+
+            This implementation demonstrates secure password-based encryption for offline use, but remember, security requires ongoing attention, updates, and potentially integrating with server-side solutions for additional layers of protection.
+         * */
+    </script>
+</body>
+</html>
