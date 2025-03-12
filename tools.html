@@ -224,9 +224,13 @@
         <div id="player" class="tool" role="region" aria-label="音乐播放器">
             <audio id="audioPlayer"></audio>
             <input type="file" id="audioFile" accept="audio/*" multiple aria-label="选择多个本地音乐文件">
+            <input type="file" id="folderInput" webkitdirectory directory style="display: none;" aria-label="选择音乐文件夹">
+            <button id="savePlaylist">保存播放列表</button>
+            <button id="loadPlaylist">加载播放列表</button>
             <div id="playerControls">
                 <button id="playAudio">播放</button>
                 <button id="pauseAudio">暂停</button>
+                <button id="stopAudio">停止</button>
                 <input type="range" id="volume" min="0" max="1" step="0.1" value="1" aria-label="音量控制">
             </div>
             <div>
@@ -300,7 +304,7 @@
         $('#getWeather').click(function() {
             const city = $('#city').val().trim();
             if (!city) return;
-            $.getJSON(`https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=YOUR_API_KEY&units=metric&lang=zh_cn`, function(data) {
+            $.getJSON(`https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=61d359eadcadfe65c0beb2a543a0d53c&units=metric&lang=zh_cn`, function(data) {
                 $('#weatherResult').html(`温度: ${data.main.temp}°C, ${data.weather[0].description}`);
             }).fail(() => $('#weatherResult').html('城市未找到或 API Key 无效'));
         });
@@ -502,9 +506,12 @@
             }
         });
 
-        // 12. 音乐播放器（多选音乐）
+        // 12. 音乐播放器（优化保存和加载播放列表）
+        // 音乐播放器（支持选择文件夹加载播放列表）
         const audio = $('#audioPlayer')[0];
         let playlist = [], currentTrack = 0;
+
+        // 渲染播放列表
         function renderPlaylist() {
             $('#playlist').html(playlist.map((track, i) => `
                 <li class="${i === currentTrack ? 'active' : ''}">
@@ -512,41 +519,54 @@
                 </li>
             `).join(''));
         }
+
+        // 从文件输入加载音乐
         $('#audioFile').change(function(e) {
             const files = Array.from(e.target.files);
             files.forEach(file => playlist.push({ name: file.name, url: URL.createObjectURL(file) }));
             if (!audio.src && playlist.length) {
                 audio.src = playlist[0].url;
-                renderPlaylist();
-            } else {
-                renderPlaylist();
             }
+            renderPlaylist();
             $(this).val('');
         });
+
+        // 播放控制
         $('#playAudio').click(() => audio.play());
         $('#pauseAudio').click(() => audio.pause());
+        $('#stopAudio').click(() => { audio.pause(); audio.currentTime = 0; });
         $('#volume').on('input', function() { audio.volume = $(this).val(); });
+
+        // 更新播放进度
         audio.ontimeupdate = () => {
             const current = Math.floor(audio.currentTime), duration = Math.floor(audio.duration || 0);
             $('#currentTime').text(new Date(current * 1000).toISOString().substr(14, 5));
             $('#duration').text(new Date(duration * 1000).toISOString().substr(14, 5));
             $('#progressBar').val((current / duration) * 100 || 0);
         };
+
+        // 播放结束自动下一首
         audio.onended = () => {
             currentTrack = (currentTrack + 1) % playlist.length;
             audio.src = playlist[currentTrack].url;
             audio.play();
             renderPlaylist();
         };
+
+        // 手动调整进度
         $('#progressBar').on('input', function() {
             audio.currentTime = (audio.duration * $(this).val()) / 100;
         });
+
+        // 点击列表切换曲目
         $('#playlist').on('click', 'li', function() {
             currentTrack = $(this).index();
             audio.src = playlist[currentTrack].url;
             audio.play();
             renderPlaylist();
         });
+
+        // 删除曲目
         $('#playlist').on('click', 'button', function(e) {
             e.stopPropagation();
             const index = $(this).data('index');
@@ -559,6 +579,68 @@
                 currentTrack--;
             }
             renderPlaylist();
+        });
+
+        // 保存播放列表（只保存文件名）
+        $('#savePlaylist').click(function() {
+            if (playlist.length === 0) {
+                alert('播放列表为空，无法保存！');
+                return;
+            }
+            const playlistNames = playlist.map(track => track.name);
+            localStorage.setItem('savedPlaylist', JSON.stringify(playlistNames));
+            alert('播放列表已保存！加载时请重新选择包含这些文件的文件夹。');
+        });
+
+        // 加载播放列表（支持选择文件夹）
+        $('#loadPlaylist').click(function() {
+            const savedData = localStorage.getItem('savedPlaylist');
+            if (!savedData) {
+                alert('没有保存的播放列表！');
+                return;
+            }
+            const savedNames = JSON.parse(savedData);
+            if (savedNames.length === 0) {
+                alert('保存的播放列表为空！');
+                return;
+            }
+
+            // 清空当前播放列表并提示用户选择文件夹
+            playlist = [];
+            renderPlaylist();
+            audio.src = '';
+            alert('请重新选择包含保存音乐文件的文件夹。');
+
+            // 使用隐藏的文件夹选择器
+            $('#folderInput').off('change.load').on('change.load', function(e) {
+                const files = Array.from(e.target.files);
+                const loadedFiles = files.filter(file => savedNames.includes(file.name));
+
+                if (loadedFiles.length === 0) {
+                    alert('未找到匹配的音乐文件，请选择正确的文件夹！');
+                    return;
+                }
+
+                // 按保存的顺序加载文件
+                playlist = savedNames
+                    .map(name => loadedFiles.find(file => file.name === name))
+                    .filter(file => file) // 过滤掉未找到的文件
+                    .map(file => ({ name: file.name, url: URL.createObjectURL(file) }));
+
+                if (playlist.length) {
+                    audio.src = playlist[0].url;
+                    currentTrack = 0;
+                    renderPlaylist();
+                    alert(`成功加载 ${playlist.length} 首音乐！`);
+                } else {
+                    alert('未加载任何匹配的音乐文件！');
+                }
+                $(this).val('');
+                $('#folderInput').off('change.load'); // 移除临时监听
+            });
+
+            // 触发文件夹选择
+            $('#folderInput').click();
         });
     </script>
 </body>
