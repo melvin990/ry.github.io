@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>日常小工具集合</title>
+    <script src="./js/jquery.min.js"></script>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: 'Roboto', Arial, sans-serif; margin: 0; padding: 20px; transition: background 0.3s, color 0.3s; }
+        body.light { background: #f0f2f5; color: #333; }
+        body.dark { background: #121212; color: #e0e0e0; }
+        .container { max-width: 900px; margin: 0 auto; }
+
+        /* 导航栏 */
+        .nav { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-bottom: 20px; }
+        .nav button { padding: 12px; background: #6200ea; color: white; border: none; border-radius: 8px; cursor: pointer; transition: transform 0.2s, background 0.2s; }
+        .nav button:hover { background: #3700b3; transform: translateY(-2px); }
+        .nav button:active { transform: translateY(0); }
+        #themeToggle { background: #ff5722; }
+        #themeToggle:hover { background: #e64a19; }
+
+        /* 工具容器 */
+        .tool { display: none; padding: 25px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); animation: fadeIn 0.3s; }
+        .tool.active { display: block; }
+        body.light .tool { background: white; }
+        body.dark .tool { background: #1e1e1e; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* 通用样式 */
+        input, select { padding: 10px; margin: 8px 0; border: 1px solid #ddd; border-radius: 6px; width: 100%; max-width: 200px; }
+        body.dark input, body.dark select { background: #333; color: #e0e0e0; border-color: #555; }
+        button { padding: 10px 20px; background: #00c853; color: white; border: none; border-radius: 6px; cursor: pointer; transition: background 0.2s; }
+        button:hover { background: #00a843; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        ul { padding: 0; margin: 0; }
+        li { padding: 10px; margin: 5px 0; border-radius: 6px; cursor: pointer; transition: background 0.2s; }
+        body.light li { background: #f9f9f9; }
+        body.dark li { background: #2c2c2c; }
+        li.done { text-decoration: line-through; color: #888; }
+        body.light li.done { background: #e0e0e0; }
+        body.dark li.done { background: #444; }
+        canvas { border: 1px solid #ddd; border-radius: 6px; }
+        body.dark canvas { border-color: #555; }
+
+        /* 计算器 */
+        .calc-display { width: 100%; max-width: 300px; font-size: 1.5em; }
+        .calc-buttons { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; max-width: 300px; }
+        .calc-buttons button { padding: 15px; font-size: 1.2em; }
+
+        /* 计时器 */
+        #timerDisplay { font-size: 2em; font-family: monospace; margin: 10px 0; }
+
+        /* 日历 */
+        #calendarHeader { font-size: 1.5em; margin-bottom: 10px; }
+        #calendarTable { width: 100%; border-collapse: collapse; }
+        #calendarTable th, #calendarTable td { padding: 12px; text-align: center; }
+        #calendarTable th { background: #6200ea; color: white; }
+        body.dark #calendarTable th { background: #3700b3; }
+        #calendarTable td { border: 1px solid #eee; position: relative; }
+        body.dark #calendarTable td { border-color: #444; }
+        #calendarTable td:hover { background: #f0f0f0; cursor: pointer; }
+        body.dark #calendarTable td:hover { background: #333; }
+        #calendarTable td.today { background: #00c853; color: white; }
+        #calendarTable td.has-event::after { content: '•'; color: #ff5722; position: absolute; top: 2px; right: 2px; }
+        .calendar-nav { margin-top: 10px; }
+        #eventForm { margin-top: 10px; display: none; }
+        #eventForm.active { display: block; }
+
+        /* 幻灯片 */
+        #slideContainer { position: relative; width: 100%; max-width: 400px; height: 200px; overflow: hidden; border-radius: 6px; }
+        .slide { position: absolute; width: 100%; height: 100%; object-fit: cover; transition: opacity 0.5s; opacity: 0; }
+        .slide.active { opacity: 1; }
+        #slideDots { text-align: center; margin: 10px 0; }
+        .dot { display: inline-block; width: 10px; height: 10px; margin: 0 5px; background: #bbb; border-radius: 50%; cursor: pointer; }
+        .dot.active { background: #6200ea; }
+        #slideUpload { margin: 10px 0; }
+
+        /* 音乐播放器 */
+        #playerControls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        #progressBar { width: 100%; max-width: 300px; }
+        #currentTime, #duration { font-size: 0.9em; }
+        #playlist { max-height: 300px; overflow-y: auto; margin-top: 10px; }
+        #playlist li { display: flex; justify-content: space-between; align-items: center; }
+        #playlist li.active { background: #00c853; color: white; }
+        #playlist button { padding: 5px; font-size: 0.8em; }
+
+        /* 密码生成 */
+        #passwordOptions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    </style>
+</head>
+<body class="light">
+    <div class="container">
+        <div class="nav">
+            <button data-tool="calculator" aria-label="打开计算器">计算器</button>
+            <button data-tool="todo" aria-label="打开待办事项">待办事项</button>
+            <button data-tool="weather" aria-label="打开天气查询">天气查询</button>
+            <button data-tool="timer" aria-label="打开计时器">计时器</button>
+            <button data-tool="converter" aria-label="打开单位转换">单位转换</button>
+            <button data-tool="drawing" aria-label="打开画板">画板</button>
+            <button data-tool="exchange" aria-label="打开汇率转换">汇率转换</button>
+            <button data-tool="calendar" aria-label="打开日历">日历</button>
+            <button data-tool="password" aria-label="打开密码生成">密码生成</button>
+            <button data-tool="bmi" aria-label="打开BMI计算">BMI 计算</button>
+            <button data-tool="slideshow" aria-label="打开幻灯片">幻灯片</button>
+            <button data-tool="player" aria-label="打开音乐播放器">音乐播放</button>
+            <button id="themeToggle" aria-label="切换主题">深色模式</button>
+        </div>
+
+        <!-- 工具内容 -->
+        <div id="calculator" class="tool" role="region" aria-label="计算器">
+            <input type="text" id="calcDisplay" class="calc-display" readonly aria-label="计算结果">
+            <div class="calc-buttons">
+                <button>7</button><button>8</button><button>9</button><button>/</button>
+                <button>4</button><button>5</button><button>6</button><button>*</button>
+                <button>1</button><button>2</button><button>3</button><button>-</button>
+                <button>0</button><button>.</button><button>=</button><button>+</button>
+                <button>C</button>
+            </div>
+        </div>
+
+        <div id="todo" class="tool" role="region" aria-label="待办事项">
+            <input type="text" id="taskInput" placeholder="输入任务" aria-label="输入新任务">
+            <button id="addTask">添加</button>
+            <button id="clearTasks">清空</button>
+            <ul id="taskList" aria-label="任务列表"></ul>
+        </div>
+
+        <div id="weather" class="tool" role="region" aria-label="天气查询">
+            <input type="text" id="city" placeholder="输入城市名" aria-label="城市名">
+            <button id="getWeather">查询</button>
+            <div id="weatherResult" aria-live="polite"></div>
+        </div>
+
+        <div id="timer" class="tool" role="region" aria-label="计时器">
+            <div id="timerDisplay" aria-live="polite">00:00:00</div>
+            <button id="startTimer">开始</button>
+            <button id="stopTimer">暂停</button>
+            <button id="resetTimer">重置</button>
+        </div>
+
+        <div id="converter" class="tool" role="region" aria-label="单位转换">
+            <input type="number" id="convertValue" placeholder="输入数值" min="0" aria-label="输入数值">
+            <select id="fromUnit" aria-label="起始单位">
+                <option value="cm">厘米</option><option value="m">米</option><option value="km">千米</option>
+                <option value="in">英寸</option><option value="ft">英尺</option><option value="g">克</option><option value="lb">磅</option>
+            </select>
+            <select id="toUnit" aria-label="目标单位">
+                <option value="cm">厘米</option><option value="m">米</option><option value="km">千米</option>
+                <option value="in">英寸</option><option value="ft">英尺</option><option value="g">克</option><option value="lb">磅</option>
+            </select>
+            <button id="convert">转换</button>
+            <div id="convertResult" aria-live="polite"></div>
+        </div>
+
+        <div id="drawing" class="tool" role="region" aria-label="画板">
+            <canvas id="canvas" width="400" height="200" aria-label="画布"></canvas>
+            <input type="color" id="colorPicker" value="#000000" aria-label="选择颜色">
+            <button id="clearCanvas">清除</button>
+        </div>
+
+        <div id="exchange" class="tool" role="region" aria-label="汇率转换">
+            <input type="number" id="amount" placeholder="输入金额" min="0" aria-label="输入金额">
+            <select id="fromCurrency" aria-label="起始货币">
+                <option value="USD">美元</option><option value="CNY">人民币</option><option value="SGD">新加坡元</option>
+                <option value="JPY">日元</option><option value="EUR">欧元</option><option value="GBP">英镑</option>
+            </select>
+            <select id="toCurrency" aria-label="目标货币">
+                <option value="USD">美元</option><option value="CNY">人民币</option><option value="SGD">新加坡元</option>
+                <option value="JPY">日元</option><option value="EUR">欧元</option><option value="GBP">英镑</option>
+            </select>
+            <button id="exchange">转换</button>
+            <div id="exchangeResult" aria-live="polite"></div>
+        </div>
+
+        <div id="calendar" class="tool" role="region" aria-label="日历">
+            <div id="calendarHeader"></div>
+            <table id="calendarTable" aria-label="日历表格">
+                <thead><tr><th>日</th><th>一</th><th>二</th><th>三</th><th>四</th><th>五</th><th>六</th></tr></thead>
+                <tbody></tbody>
+            </table>
+            <div class="calendar-nav">
+                <button id="prevMonth">上月</button>
+                <button id="nextMonth">下月</button>
+            </div>
+            <div id="eventForm">
+                <input type="text" id="eventInput" placeholder="输入事件" aria-label="输入事件">
+                <button id="saveEvent">保存</button>
+                <button id="cancelEvent">取消</button>
+                <ul id="eventList" aria-label="事件列表"></ul>
+            </div>
+        </div>
+
+        <div id="password" class="tool" role="region" aria-label="密码生成">
+            <input type="text" id="passwordOutput" readonly aria-label="生成的密码">
+            <div id="passwordOptions">
+                <select id="pwdLength" aria-label="密码长度">
+                    <option value="12">12</option><option value="18">18</option><option value="24">24</option>
+                </select>
+                <label><input type="checkbox" id="includeNumbers" checked> 数字</label>
+                <label><input type="checkbox" id="includeSpecial" checked> 特殊符号</label>
+                <button id="generatePassword">生成</button>
+            </div>
+        </div>
+
+        <div id="bmi" class="tool" role="region" aria-label="BMI计算">
+            <input type="number" id="height" placeholder="身高（米）" min="0" step="0.01" aria-label="身高">
+            <input type="number" id="weight" placeholder="体重（千克）" min="0" step="0.1" aria-label="体重">
+            <button id="calcBMI">计算</button>
+            <div id="bmiResult" aria-live="polite"></div>
+        </div>
+
+        <div id="slideshow" class="tool" role="region" aria-label="幻灯片">
+            <div id="slideContainer"></div>
+            <div id="slideDots"></div>
+            <button id="prevSlide">上一张</button>
+            <button id="nextSlide">下一张</button>
+            <div id="slideUpload">
+                <input type="file" id="imageFile" accept="image/*" multiple aria-label="选择文件夹中的多个图片">
+                <button id="removeSlide">删除当前</button>
+            </div>
+        </div>
+
+        <div id="player" class="tool" role="region" aria-label="音乐播放器">
+            <audio id="audioPlayer"></audio>
+            <input type="file" id="audioFile" accept="audio/*" multiple aria-label="选择多个本地音乐文件">
+            <div id="playerControls">
+                <button id="playAudio">播放</button>
+                <button id="pauseAudio">暂停</button>
+                <input type="range" id="volume" min="0" max="1" step="0.1" value="1" aria-label="音量控制">
+            </div>
+            <div>
+                <span id="currentTime">00:00</span> / <span id="duration">00:00</span>
+                <input type="range" id="progressBar" min="0" max="100" value="0" aria-label="播放进度">
+            </div>
+            <ul id="playlist" aria-label="播放列表"></ul>
+        </div>
+    </div>
+
+    <!-- <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script> -->
+    <script>
+        // 主题切换
+        $('#themeToggle').click(function() {
+            $('body').toggleClass('light dark');
+            $(this).text($('body').hasClass('dark') ? '浅色模式' : '深色模式');
+            localStorage.setItem('theme', $('body').hasClass('dark') ? 'dark' : 'light');
+        });
+        if (localStorage.getItem('theme') === 'dark') $('#themeToggle').click();
+
+        // 导航切换
+        $('.nav button[data-tool]').click(function() {
+            $('.tool').removeClass('active');
+            $(`#${$(this).data('tool')}`).addClass('active');
+        }).first().click();
+
+        // 1. 计算器
+        let calcStr = '';
+        $('.calc-buttons button').click(function() {
+            const val = $(this).text();
+            if (val === '=') {
+                try { calcStr = eval(calcStr) || ''; } catch { calcStr = '错误'; }
+            } else if (val === 'C') {
+                calcStr = '';
+            } else {
+                calcStr += val;
+            }
+            $('#calcDisplay').val(calcStr);
+        });
+
+        // 2. 待办事项（清空功能）
+        function loadTasks() {
+            const tasks = JSON.parse(localStorage.getItem('tasks') || '[]');
+            tasks.forEach(task => $('#taskList').append(`<li class="${task.done ? 'done' : ''}">${task.text}</li>`));
+        }
+        loadTasks();
+        $('#addTask').click(function() {
+            const task = $('#taskInput').val().trim();
+            if (task) {
+                $('#taskList').append(`<li>${task}</li>`);
+                $('#taskInput').val('');
+                saveTasks();
+            }
+        });
+        $('#taskList').on('click', 'li', function() {
+            $(this).toggleClass('done');
+            saveTasks();
+        });
+        $('#clearTasks').click(function() {
+            if (confirm('确定清空所有任务吗？')) {
+                $('#taskList').empty();
+                localStorage.removeItem('tasks');
+            }
+        });
+        function saveTasks() {
+            const tasks = $('#taskList li').map((_, el) => ({ text: $(el).text(), done: $(el).hasClass('done') })).get();
+            localStorage.setItem('tasks', JSON.stringify(tasks));
+        }
+
+        // 3. 天气查询
+        $('#getWeather').click(function() {
+            const city = $('#city').val().trim();
+            if (!city) return;
+            $.getJSON(`https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=YOUR_API_KEY&units=metric&lang=zh_cn`, function(data) {
+                $('#weatherResult').html(`温度: ${data.main.temp}°C, ${data.weather[0].description}`);
+            }).fail(() => $('#weatherResult').html('城市未找到或 API Key 无效'));
+        });
+
+        // 4. 计时器（显示时分秒）
+        let time = 0, timer;
+        function updateTimerDisplay() {
+            const hours = Math.floor(time / 3600).toString().padStart(2, '0');
+            const minutes = Math.floor((time % 3600) / 60).toString().padStart(2, '0');
+            const seconds = (time % 60).toString().padStart(2, '0');
+            $('#timerDisplay').text(`${hours}:${minutes}:${seconds}`);
+        }
+        $('#startTimer').click(function() {
+            if (!timer) {
+                timer = setInterval(() => {
+                    time++;
+                    updateTimerDisplay();
+                }, 1000);
+            }
+        });
+        $('#stopTimer').click(() => clearInterval(timer) && (timer = null));
+        $('#resetTimer').click(() => { clearInterval(timer); timer = null; time = 0; updateTimerDisplay(); });
+        updateTimerDisplay();
+
+        // 5. 单位转换（美国和欧洲单位）
+        $('#convert').click(function() {
+            const value = parseFloat($('#convertValue').val());
+            if (isNaN(value)) return;
+            const from = $('#fromUnit').val(), to = $('#toUnit').val();
+            const conversions = {
+                cm: { m: 0.01, km: 0.00001, in: 0.393701, ft: 0.0328084, g: null, lb: null },
+                m: { cm: 100, km: 0.001, in: 39.3701, ft: 3.28084, g: null, lb: null },
+                km: { cm: 100000, m: 1000, in: 39370.1, ft: 3280.84, g: null, lb: null },
+                in: { cm: 2.54, m: 0.0254, km: 0.0000254, ft: 0.0833333, g: null, lb: null },
+                ft: { cm: 30.48, m: 0.3048, km: 0.0003048, in: 12, g: null, lb: null },
+                g: { cm: null, m: null, km: null, in: null, ft: null, lb: 0.00220462 },
+                lb: { cm: null, m: null, km: null, in: null, ft: null, g: 453.592 }
+            };
+            const result = from === to ? value : conversions[from][to] ? value * conversions[from][to] : value;
+            $('#convertResult').text(result ? `${result.toFixed(4)} ${to}` : '无法转换');
+        });
+
+        // 6. 画板
+        const canvas = $('#canvas')[0], ctx = canvas.getContext('2d');
+        let drawing = false;
+        $(canvas).on({
+            mousedown: () => drawing = true,
+            mouseup: () => drawing = false,
+            mousemove: (e) => {
+                if (drawing) {
+                    ctx.strokeStyle = $('#colorPicker').val();
+                    ctx.lineWidth = 2;
+                    ctx.lineTo(e.offsetX, e.offsetY);
+                    ctx.stroke();
+                } else {
+                    ctx.beginPath();
+                    ctx.moveTo(e.offsetX, e.offsetY);
+                }
+            }
+        });
+        $('#clearCanvas').click(() => ctx.clearRect(0, 0, canvas.width, canvas.height));
+
+        // 7. 汇率转换（新增货币）
+        $('#exchange').click(function() {
+            const amount = parseFloat($('#amount').val());
+            if (isNaN(amount)) return;
+            const from = $('#fromCurrency').val(), to = $('#toCurrency').val();
+            $.getJSON(`https://api.exchangerate-api.com/v4/latest/${from}`, function(data) {
+                const rate = data.rates[to];
+                $('#exchangeResult').text(`${(amount * rate).toFixed(2)} ${to}`);
+            }).fail(() => $('#exchangeResult').html('API Key 无效或网络错误'));
+        });
+
+        // 8. 日历
+        let date = new Date(), selectedDate, events = JSON.parse(localStorage.getItem('calendarEvents') || '{}');
+        function renderCalendar() {
+            const year = date.getFullYear(), month = date.getMonth();
+            $('#calendarHeader').text(`${year}年 ${month + 1}月`);
+            const days = new Date(year, month + 1, 0).getDate();
+            const firstDay = new Date(year, month, 1).getDay();
+            const today = new Date();
+            let html = '', dayCount = 1;
+            for (let i = 0; i < 6; i++) {
+                html += '<tr>';
+                for (let j = 0; j < 7; j++) {
+                    if (i === 0 && j < firstDay || dayCount > days) {
+                        html += '<td></td>';
+                    } else {
+                        const isToday = dayCount === today.getDate() && month === today.getMonth() && year === today.getFullYear();
+                        const dateKey = `${year}-${month + 1}-${dayCount}`;
+                        const hasEvent = events[dateKey]?.length > 0;
+                        html += `<td class="${isToday ? 'today' : ''} ${hasEvent ? 'has-event' : ''}" data-date="${dateKey}">${dayCount}</td>`;
+                        dayCount++;
+                    }
+                }
+                html += '</tr>';
+                if (dayCount > days) break;
+            }
+            $('#calendarTable tbody').html(html);
+        }
+        renderCalendar();
+        $('#prevMonth').click(() => { date.setMonth(date.getMonth() - 1); renderCalendar(); });
+        $('#nextMonth').click(() => { date.setMonth(date.getMonth() + 1); renderCalendar(); });
+        $('#calendarTable').on('click', 'td', function() {
+            const dateKey = $(this).data('date');
+            if (!dateKey) return;
+            selectedDate = dateKey;
+            $('#eventForm').addClass('active');
+            $('#eventList').empty();
+            (events[dateKey] || []).forEach((event, i) => {
+                $('#eventList').append(`<li>${event} <button data-index="${i}">删除</button></li>`);
+            });
+        });
+        $('#saveEvent').click(() => {
+            const eventText = $('#eventInput').val().trim();
+            if (eventText && selectedDate) {
+                events[selectedDate] = events[selectedDate] || [];
+                events[selectedDate].push(eventText);
+                localStorage.setItem('calendarEvents', JSON.stringify(events));
+                $('#eventInput').val('');
+                renderCalendar();
+                $('#eventForm').removeClass('active');
+            }
+        });
+        $('#cancelEvent').click(() => $('#eventForm').removeClass('active'));
+        $('#eventList').on('click', 'button', function() {
+            const index = $(this).data('index');
+            events[selectedDate].splice(index, 1);
+            if (!events[selectedDate].length) delete events[selectedDate];
+            localStorage.setItem('calendarEvents', JSON.stringify(events));
+            renderCalendar();
+            $('#eventForm').removeClass('active');
+        });
+
+        // 9. 密码生成（长度、数字、特殊符号）
+        $('#generatePassword').click(function() {
+            const length = parseInt($('#pwdLength').val());
+            const includeNumbers = $('#includeNumbers').is(':checked');
+            const includeSpecial = $('#includeSpecial').is(':checked');
+            let chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+            if (includeNumbers) chars += '0123456789';
+            if (includeSpecial) chars += '!@#$%^&*';
+            let pwd = '';
+            for (let i = 0; i < length; i++) pwd += chars.charAt(Math.floor(Math.random() * chars.length));
+            $('#passwordOutput').val(pwd);
+        });
+
+        // 10. BMI 计算
+        $('#calcBMI').click(function() {
+            const height = parseFloat($('#height').val()), weight = parseFloat($('#weight').val());
+            if (isNaN(height) || isNaN(weight)) return;
+            const bmi = (weight / (height * height)).toFixed(2);
+            $('#bmiResult').text(`BMI: ${bmi} (${bmi < 18.5 ? '偏瘦' : bmi < 25 ? '正常' : '超重'})`);
+        });
+
+        // 11. 幻灯片（多选图片模拟文件夹）
+        let slideIndex = 0, autoSlide, slides = [];
+        function renderSlides() {
+            $('#slideContainer').html(slides.map((src, i) => `<img src="${src}" class="slide ${i === slideIndex ? 'active' : ''}" alt="幻灯片${i + 1}">`).join(''));
+            renderDots();
+            showSlide(slideIndex);
+        }
+        function showSlide(n) {
+            $('.slide').removeClass('active').eq(n).addClass('active');
+            $('.dot').removeClass('active').eq(n).addClass('active');
+        }
+        function renderDots() {
+            $('#slideDots').html(slides.map((_, i) => `<span class="dot ${i === slideIndex ? 'active' : ''}"></span>`).join(''));
+        }
+        renderSlides();
+        function startAutoSlide() {
+            autoSlide = setInterval(() => {
+                slideIndex = (slideIndex + 1) % slides.length;
+                showSlide(slideIndex);
+            }, 3000);
+        }
+        $('#prevSlide').click(() => { clearInterval(autoSlide); slideIndex = (slideIndex - 1 + slides.length) % slides.length; showSlide(slideIndex); startAutoSlide(); });
+        $('#nextSlide').click(() => { clearInterval(autoSlide); slideIndex = (slideIndex + 1) % slides.length; showSlide(slideIndex); startAutoSlide(); });
+        $('#slideDots').on('click', '.dot', function() {
+            clearInterval(autoSlide);
+            slideIndex = $(this).index();
+            showSlide(slideIndex);
+            startAutoSlide();
+        });
+        $('#imageFile').change(function(e) {
+            const files = Array.from(e.target.files);
+            if (files.length) {
+                slides = files.map(file => URL.createObjectURL(file));
+                renderSlides();
+                if (!autoSlide) startAutoSlide();
+            }
+            $(this).val('');
+        });
+        $('#removeSlide').click(() => {
+            if (slides.length > 1) {
+                slides.splice(slideIndex, 1);
+                slideIndex = Math.min(slideIndex, slides.length - 1);
+                renderSlides();
+            }
+        });
+
+        // 12. 音乐播放器（多选音乐）
+        const audio = $('#audioPlayer')[0];
+        let playlist = [], currentTrack = 0;
+        function renderPlaylist() {
+            $('#playlist').html(playlist.map((track, i) => `
+                <li class="${i === currentTrack ? 'active' : ''}">
+                    ${track.name} <button data-index="${i}">删除</button>
+                </li>
+            `).join(''));
+        }
+        $('#audioFile').change(function(e) {
+            const files = Array.from(e.target.files);
+            files.forEach(file => playlist.push({ name: file.name, url: URL.createObjectURL(file) }));
+            if (!audio.src && playlist.length) {
+                audio.src = playlist[0].url;
+                renderPlaylist();
+            } else {
+                renderPlaylist();
+            }
+            $(this).val('');
+        });
+        $('#playAudio').click(() => audio.play());
+        $('#pauseAudio').click(() => audio.pause());
+        $('#volume').on('input', function() { audio.volume = $(this).val(); });
+        audio.ontimeupdate = () => {
+            const current = Math.floor(audio.currentTime), duration = Math.floor(audio.duration || 0);
+            $('#currentTime').text(new Date(current * 1000).toISOString().substr(14, 5));
+            $('#duration').text(new Date(duration * 1000).toISOString().substr(14, 5));
+            $('#progressBar').val((current / duration) * 100 || 0);
+        };
+        audio.onended = () => {
+            currentTrack = (currentTrack + 1) % playlist.length;
+            audio.src = playlist[currentTrack].url;
+            audio.play();
+            renderPlaylist();
+        };
+        $('#progressBar').on('input', function() {
+            audio.currentTime = (audio.duration * $(this).val()) / 100;
+        });
+        $('#playlist').on('click', 'li', function() {
+            currentTrack = $(this).index();
+            audio.src = playlist[currentTrack].url;
+            audio.play();
+            renderPlaylist();
+        });
+        $('#playlist').on('click', 'button', function(e) {
+            e.stopPropagation();
+            const index = $(this).data('index');
+            playlist.splice(index, 1);
+            if (index === currentTrack) {
+                currentTrack = Math.min(currentTrack, playlist.length - 1);
+                audio.src = playlist[currentTrack]?.url || '';
+                audio.pause();
+            } else if (index < currentTrack) {
+                currentTrack--;
+            }
+            renderPlaylist();
+        });
+    </script>
+</body>
+</html>
