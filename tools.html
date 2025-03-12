@@ -304,7 +304,7 @@
         $('#getWeather').click(function() {
             const city = $('#city').val().trim();
             if (!city) return;
-            $.getJSON(`https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=61d359eadcadfe65c0beb2a543a0d53c&units=metric&lang=zh_cn`, function(data) {
+            $.getJSON(`https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=appid&units=metric&lang=zh_cn`, function(data) {
                 $('#weatherResult').html(`温度: ${data.main.temp}°C, ${data.weather[0].description}`);
             }).fail(() => $('#weatherResult').html('城市未找到或 API Key 无效'));
         });
