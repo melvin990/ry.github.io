@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <meta name="description" content="Utils">
+    <title>登录与简单小工具</title>
+    <script src="./js/crypto-js.min.js"></script>
+    <style>
+        :root {
+            --primary: #667eea;
+            --secondary: #764ba2;
+            --error: #e74c3c;
+            --success: #2ecc71;
+            --shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            --radius: 8px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            display: grid;
+            place-items: center;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            padding: 10px;
+            color: #333;
+        }
+
+        .container, .login-container {
+            background: #fff;
+            padding: 2rem;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            width: 90%;
+            max-width: 400px; /* 登录界面保持较窄 */
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+
+        .container {
+            max-width: 650px; /* 加密解密界面最大宽度更大 */
+        }
+
+        @media (min-width: 650px) {
+            .container {
+                width: 50%; /* 大屏幕时占70%宽度 */
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .container {
+                width: 50%; /* 超大屏幕时占60%宽度 */
+            }
+        }
+
+        .container:hover, .login-container:hover {
+            transform: translateY(-5px);
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 1.5rem;
+            color: #2c3e50;
+            font-size: clamp(1.5rem, 5vw, 1.75rem);
+        }
+
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #555;
+            font-weight: 500;
+        }
+
+        input, textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: var(--radius);
+            font-size: 1rem;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 5px rgba(102, 126, 234, 0.3);
+        }
+
+        textarea {
+            background-color: #f8f9fa;
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        button {
+            width: 100%;
+            padding: 0.75rem;
+            background: var(--primary);
+            border: none;
+            border-radius: var(--radius);
+            color: #fff;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.3s ease, transform 0.1s ease;
+            margin: 5px 0;
+        }
+
+        button:hover:not(:disabled) {
+            background: var(--secondary);
+            transform: scale(1.05);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        @media (min-width: 480px) {
+            .button-group button {
+                width: calc(33.33% - 10px);
+                margin: 5px;
+            }
+        }
+
+        .message {
+            text-align: center;
+            margin-top: 1rem;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .message.error {
+            color: var(--error);
+        }
+
+        .message.success {
+            color: var(--success);
+        }
+
+        p {
+            font-size: 0.9em;
+            color: #7f8c8d;
+            margin: 10px 0;
+        }
+
+        .count {
+            color: var(--error);
+            font-weight: bold;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        @media (max-width: 480px) {
+            .container, .login-container {
+                padding: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container" id="loginContainer">
+        <h1>登录系统</h1>
+        <form id="authForm" novalidate>
+            <div class="form-group">
+                <label for="username">用户名</label>
+                <input type="text" id="username" placeholder="请输入用户名" autocomplete="username">
+            </div>
+            <div class="form-group">
+                <label for="password">密码</label>
+                <input type="password" id="password" placeholder="请输入密码" autocomplete="current-password">
+            </div>
+            <button type="submit">登录</button>
+        </form>
+        <div class="message" id="message"></div>
+    </div>
+
+    <div class="container hidden" id="mainContent">
+        <h1>密码加密/解密</h1>
+        <div class="form-group">
+            <label for="cryptoPassword">加密密码</label>
+            <input type="password" id="cryptoPassword" placeholder="输入加密密码">
+        </div>
+        <div class="form-group">
+            <label for="salt">盐值</label>
+            <input type="password" id="salt" placeholder="输入盐值（任意字符串）">
+        </div>
+        <div class="form-group">
+            <label for="plaintext">待加密文本</label>
+            <input type="text" id="plaintext" placeholder="要加密的文本">
+        </div>
+        <div class="button-group">
+            <button id="encryptBtn">加密</button>
+            <button id="decryptBtn">解密</button>
+            <button id="resetBtn">重置</button>
+        </div>
+        <div class="form-group">
+            <label for="ciphertext">加密后/待解密结果</label>
+            <textarea id="ciphertext" placeholder="加密后/待解密文本"></textarea>
+        </div>
+        <p>加密次数: <span id="encryptCount" class="count">0</span></p>
+        <p>解密次数: <span id="decryptCount" class="count">0</span></p>
+    </div>
+
+    <script>
+        (function () {
+            'use strict';
+
+            // 配置
+            const CONFIG = {
+                SECRET_KEY: 'team-move-zoon-gatekey-2025',
+                MIN_USERNAME_LENGTH: 3,
+                MIN_PASSWORD_LENGTH: 6,
+                STORAGE_PREFIX: 'auth_',
+                DEFAULT_USER: {
+                    username: 'admin',
+                    password: 'helloworld&happyday' // 默认密码，运行时加密2025
+                }
+            };
+
+            // DOM 元素
+            const elements = {
+                loginContainer: document.getElementById('loginContainer'),
+                authForm: document.getElementById('authForm'),
+                username: document.getElementById('username'),
+                password: document.getElementById('password'),
+                message: document.getElementById('message'),
+                loginButton: document.querySelector('#authForm button'),
+                mainContent: document.getElementById('mainContent'),
+                cryptoPassword: document.getElementById('cryptoPassword'),
+                salt: document.getElementById('salt'),
+                plaintext: document.getElementById('plaintext'),
+                ciphertext: document.getElementById('ciphertext'),
+                encryptCount: document.getElementById('encryptCount'),
+                decryptCount: document.getElementById('decryptCount'),
+                encryptBtn: document.getElementById('encryptBtn'),
+                decryptBtn: document.getElementById('decryptBtn'),
+                resetBtn: document.getElementById('resetBtn')
+            };
+
+            // 检查 CryptoJS 是否加载
+            if (typeof CryptoJS === 'undefined') {
+                console.error('CryptoJS 未加载，请检查文件路径');
+                elements.message.textContent = '系统错误：CryptoJS 未加载';
+                return;
+            }
+
+            let isLoggedIn = false;
+            let encryptCount = 0;
+            let decryptCount = 0;
+
+            // 工具函数
+            const utils = {
+                setMessage(text, type) {
+                    elements.message.textContent = text;
+                    elements.message.className = `message ${type || ''}`;
+                },
+
+                encrypt(text) {
+                    try {
+                        return CryptoJS.AES.encrypt(text, CONFIG.SECRET_KEY, {
+                            mode: CryptoJS.mode.CBC,
+                            padding: CryptoJS.pad.Pkcs7
+                        }).toString();
+                    } catch (e) {
+                        console.error('加密失败:', e);
+                        return null;
+                    }
+                },
+
+                decrypt(encrypted) {
+                    try {
+                        const bytes = CryptoJS.AES.decrypt(encrypted, CONFIG.SECRET_KEY, {
+                            mode: CryptoJS.mode.CBC,
+                            padding: CryptoJS.pad.Pkcs7
+                        });
+                        const decrypted = bytes.toString(CryptoJS.enc.Utf8);
+                        if (!decrypted) throw new Error('解密结果为空');
+                        return decrypted;
+                    } catch (e) {
+                        console.error('解密失败:', e);
+                        return null;
+                    }
+                },
+
+                getStorageKey(username) {
+                    return `${CONFIG.STORAGE_PREFIX}${username.toLowerCase()}`;
+                },
+
+                validateInput(username, password) {
+                    if (username.length < CONFIG.MIN_USERNAME_LENGTH) {
+                        return `用户名至少 ${CONFIG.MIN_USERNAME_LENGTH} 个字符`;
+                    }
+                    if (password.length < CONFIG.MIN_PASSWORD_LENGTH) {
+                        return `密码至少 ${CONFIG.MIN_PASSWORD_LENGTH} 个字符`;
+                    }
+                    if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+                        return '用户名只能包含字母、数字和下划线';
+                    }
+                    return null;
+                },
+
+                initDefaultUser() {
+                    const defaultKey = utils.getStorageKey(CONFIG.DEFAULT_USER.username);
+                    //备用密码
+                    // const encryptedPassword123 = utils.encrypt(CONFIG.DEFAULT_USER.password);
+                    // console.log('默认用户已初始化备用密码：', encryptedPassword123);
+                    //将默认初始化密码加密，这里将它写成固定值
+                    const encryptedPassword='U2FsdGVkX1+La/WPvkehWzmuqhUWX7pUYZUDIKxXw9Q='
+                    if (encryptedPassword) {
+                        localStorage.setItem(defaultKey, encryptedPassword);
+                        console.log('默认用户已初始化或更新：', CONFIG.DEFAULT_USER.username);
+                        console.log('默认用户加密后的密码:', encryptedPassword);
+                    } else {
+                        console.error('默认用户初始化失败：加密失败');
+                    }
+                }
+            };
+
+            // 防抖函数
+            const debounce = (fn, delay) => {
+                let timeout;
+                return (...args) => {
+                    clearTimeout(timeout);
+                    timeout = setTimeout(() => fn(...args), delay);
+                };
+            };
+
+            // 处理登录/注册提交
+            const handleSubmit = async (e) => {
+                e.preventDefault();
+                elements.loginButton.disabled = true;
+
+                const username = elements.username.value.trim();
+                const password = elements.password.value;
+
+                const validationError = utils.validateInput(username, password);
+                if (validationError) {
+                    utils.setMessage(validationError, 'error');
+                    elements.loginButton.disabled = false;
+                    return;
+                }
+
+                const storageKey = utils.getStorageKey(username);
+                //默认加密密码
+                const storedData = localStorage.getItem(storageKey);
+                try {
+                    if (storedData) {
+                        // 默认密码登录
+                        const decryptedPassword = utils.decrypt(storedData);
+                        if (decryptedPassword === password) {
+                            utils.setMessage('登录成功！欢迎回来', 'success');
+                            isLoggedIn = true;
+                            setTimeout(() => {
+                                elements.loginContainer.classList.add('hidden');
+                                elements.mainContent.classList.remove('hidden');
+                            }, 500);
+                        } else {
+                            utils.setMessage('密码错误', 'error');
+                        }
+                    }else {
+                        // 注册
+                        // const encryptedPassword = utils.encrypt(password);
+                        // if (encryptedPassword) {
+                        //     localStorage.setItem(storageKey, encryptedPassword);
+                        //     utils.setMessage('注册成功！请记住您的密码', 'success');
+                        // } else {
+                        //     utils.setMessage('注册失败：加密错误', 'error');
+                        // }
+                        utils.setMessage('登录失败：用户或密码错误', 'error');
+                    }
+                } catch (error) {
+                    utils.setMessage('操作失败，请稍后重试', 'error');
+                    console.error('Auth Error:', error);
+                } finally {
+                    elements.loginButton.disabled = false;
+                }
+            };
+
+            // 加密函数（工具部分）
+            async function encrypt() {
+                if (!isLoggedIn) {
+                    alert('请先登录');
+                    return;
+                }
+
+                const password = elements.cryptoPassword.value;
+                const saltString = elements.salt.value;
+                const plaintext = elements.plaintext.value || elements.ciphertext.value;
+
+                if (!password || !saltString || !plaintext) {
+                    alert('请输入加密密码、盐值和文本');
+                    return;
+                }
+
+                try {
+                    const saltHex = Array.from(saltString).reduce((hex, c) => hex + c.charCodeAt(0).toString(16).padStart(2, '0'), '');
+                    const salt = new Uint8Array(saltHex.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
+                    const key = await deriveKey(password, salt);
+                    const iv = crypto.getRandomValues(new Uint8Array(12));
+                    const encoded = new TextEncoder().encode(plaintext);
+
+                    const encrypted = await window.crypto.subtle.encrypt(
+                        { name: 'AES-GCM', iv: iv },
+                        key,
+                        encoded
+                    );
+
+                    const encryptedArray = Array.from(new Uint8Array(encrypted));
+                    const ivArray = Array.from(iv);
+                    const combined = ivArray.concat(encryptedArray);
+
+                    elements.ciphertext.value = btoa(String.fromCharCode.apply(null, combined));
+                    elements.plaintext.value = '';
+                    encryptCount++;
+                    elements.encryptCount.textContent = encryptCount;
+                } catch (error) {
+                    console.error('加密失败:', error);
+                    alert('加密失败，请重试');
+                }
+            }
+
+            // 解密函数（工具部分）
+            async function decrypt() {
+                if (!isLoggedIn) {
+                    alert('请先登录');
+                    return;
+                }
+
+                const password = elements.cryptoPassword.value;
+                const saltString = elements.salt.value;
+                const ciphertext = elements.ciphertext.value;
+
+                if (!password || !saltString || !ciphertext) {
+                    alert('请输入加密密码、盐值和加密后的文本');
+                    return;
+                }
+
+                try {
+                    const saltHex = Array.from(saltString).reduce((hex, c) => hex + c.charCodeAt(0).toString(16).padStart(2, '0'), '');
+                    const salt = new Uint8Array(saltHex.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
+                    const key = await deriveKey(password, salt);
+                    const combined = new Uint8Array(atob(ciphertext).split('').map(c => c.charCodeAt(0)));
+                    const iv = combined.slice(0, 12);
+                    const data = combined.slice(12);
+
+                    const decrypted = await window.crypto.subtle.decrypt(
+                        { name: 'AES-GCM', iv: iv },
+                        key,
+                        data
+                    );
+
+                    elements.plaintext.value = new TextDecoder().decode(decrypted);
+                    elements.ciphertext.value = '';
+                    decryptCount++;
+                    elements.decryptCount.textContent = decryptCount;
+                } catch (error) {
+                    console.error('解密失败:', error);
+                    alert('解密失败，请检查密码、盐值或加密文本');
+                }
+            }
+
+            // 密钥派生函数
+            async function deriveKey(password, salt) {
+                const iterations = 1000009;
+                const keyMaterial = await window.crypto.subtle.importKey(
+                    'raw',
+                    new TextEncoder().encode(password),
+                    { name: 'PBKDF2' },
+                    false,
+                    ['deriveBits', 'deriveKey']
+                );
+
+                return await window.crypto.subtle.deriveKey(
+                    {
+                        name: 'PBKDF2',
+                        salt: salt,
+                        iterations: iterations,
+                        hash: 'SHA-256'
+                    },
+                    keyMaterial,
+                    { name: 'AES-GCM', length: 256 },
+                    true,
+                    ['encrypt', 'decrypt']
+                );
+            }
+
+            // 重置函数
+            function reset() {
+                if (!isLoggedIn) {
+                    alert('请先登录');
+                    return;
+                }
+                elements.cryptoPassword.value = '';
+                elements.salt.value = '';
+                elements.plaintext.value = '';
+                elements.ciphertext.value = '';
+                encryptCount = 0;
+                decryptCount = 0;
+                elements.encryptCount.textContent = encryptCount;
+                elements.decryptCount.textContent = decryptCount;
+            }
+
+            // 初始化
+            const init = () => {
+                utils.initDefaultUser();
+                elements.authForm.addEventListener('submit', handleSubmit);
+                elements.username.addEventListener('input', debounce(() => utils.setMessage('', ''), 300));
+                elements.password.addEventListener('input', debounce(() => utils.setMessage('', ''), 300));
+                elements.password.addEventListener('keypress', (event) => {
+                    if (event.key === 'Enter') {
+                        event.preventDefault();
+                        handleSubmit(event);
+                    }
+                });
+                // 绑定按钮事件
+                elements.encryptBtn.addEventListener('click', encrypt);
+                elements.decryptBtn.addEventListener('click', decrypt);
+                elements.resetBtn.addEventListener('click', reset);
+            };
+
+            init();
+        })();
+    </script>
+</body>
+</html>

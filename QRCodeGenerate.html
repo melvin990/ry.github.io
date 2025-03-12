@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>专业二维码生成器</title>
+    <style>
+        /* 全局样式 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: 'Segoe UI', Arial, sans-serif;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 700px;
+            padding: 30px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .container:hover {
+            transform: translateY(-5px);
+        }
+
+        h2 {
+            color: #2c3e50;
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        /* 输入区域 */
+        .input-area {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        #qrInput {
+            flex: 1;
+            min-width: 200px;
+            padding: 14px 20px;
+            font-size: 16px;
+            border: 2px solid #dfe4ea;
+            border-radius: 10px;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        #qrInput:focus {
+            border-color: #3498db;
+            box-shadow: 0 0 8px rgba(52, 152, 219, 0.3);
+        }
+
+        /* 按钮样式 */
+        .button {
+            padding: 14px 30px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        #generateBtn {
+            background: linear-gradient(45deg, #2ecc71, #27ae60);
+        }
+
+        #generateBtn:hover {
+            background: linear-gradient(45deg, #27ae60, #2ecc71);
+        }
+
+        #downloadBtn {
+            background: linear-gradient(45deg, #3498db, #2980b9);
+            display: none;
+        }
+
+        #downloadBtn:hover {
+            background: linear-gradient(45deg, #2980b9, #3498db);
+        }
+
+        .button:active {
+            transform: scale(0.95);
+        }
+
+        /* 二维码显示区 */
+        #qrcode {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            background: #fff;
+            border-radius: 15px;
+            margin: 0 auto 20px;
+            max-width: 300px;
+        }
+
+        #qrcode canvas {
+            border: 15px solid white;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        /* 消息提示 */
+        #message {
+            font-size: 14px;
+            padding: 10px;
+            border-radius: 5px;
+            transition: opacity 0.3s ease;
+        }
+
+        #message.error {
+            color: #c0392b;
+            background: #fadbd8;
+        }
+
+        #message.success {
+            color: #27ae60;
+            background: #d4efdf;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 480px) {
+            .input-area {
+                flex-direction: column;
+            }
+            .button {
+                width: 100%;
+            }
+            #qrInput {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>专业二维码生成器</h2>
+        <div class="input-area">
+            <input type="text" id="qrInput" placeholder="输入内容以生成二维码">
+            <button class="button" id="generateBtn">生成</button>
+            <button class="button" id="downloadBtn">下载</button>
+        </div>
+        <div id="qrcode"></div>
+        <div id="message"></div>
+    </div>
+
+    <!-- 本地 qrcode.js -->
+    <script src="./js/qrcode.min.js"></script>
+    <script>
+        // 模块化工具函数
+        const Utils = {
+            showMessage: (text, type) => {
+                const msg = document.getElementById('message');
+                msg.textContent = text;
+                msg.className = type;
+                setTimeout(() => msg.style.opacity = '0', 3000);
+                msg.style.opacity = '1';
+            },
+            debounce: (func, wait) => {
+                let timeout;
+                return (...args) => {
+                    clearTimeout(timeout);
+                    timeout = setTimeout(() => func(...args), wait);
+                };
+            }
+        };
+
+        // 主应用程序
+        class QRCodeGenerator {
+            constructor() {
+                this.qrInput = document.getElementById('qrInput');
+                this.generateBtn = document.getElementById('generateBtn');
+                this.downloadBtn = document.getElementById('downloadBtn');
+                this.qrcodeDiv = document.getElementById('qrcode');
+                this.qrcode = null;
+                this.init();
+            }
+
+            // 初始化
+            init() {
+                if (!this.checkLibrary()) return;
+                this.setupQRCode();
+                this.bindEvents();
+            }
+
+            // 检查库是否加载
+            checkLibrary() {
+                if (typeof QRCode === 'undefined') {
+                    Utils.showMessage('二维码库加载失败，请检查 qrcode.min.js', 'error');
+                    return false;
+                }
+                if (!QRCode.CorrectLevel || typeof QRCode.CorrectLevel.H === 'undefined') {
+                    Utils.showMessage('二维码库初始化异常', 'error');
+                    return false;
+                }
+                return true;
+            }
+
+            // 设置二维码
+            setupQRCode() {
+                this.qrcode = new QRCode(this.qrcodeDiv, {
+                    width: 200,
+                    height: 200,
+                    colorDark: "#000000",
+                    colorLight: "#ffffff",
+                    correctLevel: QRCode.CorrectLevel.H
+                });
+            }
+
+            // 绑定事件
+            bindEvents() {
+                const generateHandler = Utils.debounce(this.generate.bind(this), 300);
+                this.generateBtn.addEventListener('click', generateHandler);
+                this.qrInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') generateHandler();
+                });
+                this.downloadBtn.addEventListener('click', this.download.bind(this));
+            }
+
+            // 生成二维码
+            generate() {
+                const text = this.qrInput.value.trim();
+                if (!text) {
+                    Utils.showMessage('请输入内容！', 'error');
+                    this.downloadBtn.style.display = 'none';
+                    return;
+                }
+                try {
+                    this.qrcode.makeCode(text);
+                    this.downloadBtn.style.display = 'inline-block';
+                    Utils.showMessage('二维码生成成功！', 'success');
+                } catch (e) {
+                    Utils.showMessage(`生成失败: ${e.message}`, 'error');
+                }
+            }
+
+            // 下载二维码
+            download() {
+                const canvas = this.qrcodeDiv.querySelector('canvas');
+                if (!canvas) {
+                    Utils.showMessage('请先生成二维码！', 'error');
+                    return;
+                }
+                try {
+                    const link = document.createElement('a');
+                    link.download = `qrcode-${new Date().toISOString().slice(0,10)}.png`;
+                    link.href = canvas.toDataURL('image/png');
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    Utils.showMessage('下载成功！', 'success');
+                } catch (e) {
+                    Utils.showMessage(`下载失败: ${e.message}`, 'error');
+                }
+            }
+        }
+
+        // 启动应用
+        window.addEventListener('load', () => {
+            new QRCodeGenerator();
+        });
+    </script>
+</body>
+</html>

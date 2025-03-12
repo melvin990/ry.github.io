@@ -1,328 +1,496 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Welcome！！！</title>
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #fafafa;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            margin: 0;
-            color: #333;
-            padding: 10px; /* Padding for smaller screens */
-        }
-
-        .container, .login-container {
-            background: #ffffff;
-            padding: 20px;
-            border-radius: 15px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-            width: 90%; /* Full width on small screens */
-            max-width: 400px; /* Max width on larger screens */
-            text-align: center;
-            transition: transform 0.3s ease;
-        }
-
-        @media (min-width: 768px) {
-            .container, .login-container {
-                width: 50%; /* Wider on tablets and desktops */
-                padding: 25px;
+<html lang="zh-CN">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>休闲一刻</title>
+        <script src="./js/jquery.min.js"></script>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+                font-family: 'Arial', sans-serif;
             }
-        }
 
-        .container:hover, .login-container:hover {
-            transform: translateY(-5px);
-        }
-
-        h1 {
-            color: #2c3e50;
-            font-size: 24px;
-            margin-bottom: 20px;
-        }
-
-        input, textarea {
-            width: 100%;
-            padding: 12px;
-            margin: 10px 0;
-            border: 1px solid #e0e0e0;
-            border-radius: 5px;
-            box-sizing: border-box;
-            font-size: 16px;
-        }
-
-        input[type="password"], input[type="text"], input[type="text"]:focus {
-            transition: border-color 0.3s, box-shadow 0.3s;
-        }
-
-        input[type="password"]:focus, input[type="text"]:focus {
-            border-color: #3498db;
-            box-shadow: 0 0 5px rgba(52, 152, 219, 0.5);
-            outline: none;
-        }
-
-        button {
-            width: 100%; /* Full width on mobile */
-            padding: 12px;
-            margin: 5px 0; /* Space between buttons */
-            cursor: pointer;
-            background-color: #3498db;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            font-size: 16px;
-            transition: background-color 0.3s, transform 0.1s ease;
-        }
-
-        @media (min-width: 480px) {
-            button {
-                width: calc(33.33% - 10px); /* Three buttons across on larger screens */
-                margin: 5px;
+            body {
+                background: linear-gradient(135deg, #e0eafc, #cfdef3);
+                color: #333;
+                line-height: 1.6;
+                position: relative;
+                overflow-x: hidden;
             }
-        }
 
-        button:hover {
-            background-color: #2980b9;
-            transform: scale(1.05);
-        }
+            /* 粒子容器 */
+            #particle-canvas {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                z-index: -1;
+            }
 
-        button:active {
-            transform: scale(0.98);
-        }
+            /* 导航栏 */
+            .navbar {
+                background: rgba(255, 255, 255, 0.9);
+                padding: 20px;
+                box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+                position: fixed;
+                width: 100%;
+                top: 0;
+                z-index: 1000;
+                transition: all 0.3s ease;
+                backdrop-filter: blur(5px);
+            }
 
-        textarea {
-            background-color: #f8f9fa;
-            resize: vertical;
-            min-height: 100px;
-        }
+            .navbar .container {
+                max-width: 1200px;
+                margin: 0 auto;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
 
-        p {
-            font-size: 0.9em;
-            color: #7f8c8d;
-            margin: 10px 0;
-        }
+            .navbar h1 {
+                font-size: 24px;
+                font-weight: 700;
+                color: #2c3e50;
+            }
 
-        .count {
-            color: #e74c3c;
-            font-weight: bold;
-        }
+            .nav-links {
+                position: relative;
+            }
 
-        .hidden {
-            display: none;
-        }
-    </style>
-</head>
-<body>
-    <div class="login-container">
-        <h1>登录</h1>
-        <input type="password" id="loginPassword" placeholder="输入登录密码">
-        <button onclick="login()">登录</button>
-    </div>
+            .nav-links a {
+                margin-left: 20px;
+                text-decoration: none;
+                color: #666;
+                font-weight: 500;
+                transition: color 0.3s ease;
+            }
 
-    <div class="container hidden" id="mainContent">
-        <h1>密码加密/解密</h1>
-        <input type="password" id="password" placeholder="输入密码">
-        <input type="password" id="salt" placeholder="输入盐值（任意字符串）">
-        <input type="text" id="plaintext" placeholder="要加密的文本">
-        <div>
-            <button onclick="encrypt()">加密</button>
-            <button onclick="decrypt()">解密</button>
-            <button onclick="reset()">重置</button>
+            .nav-links a:hover {
+                color: #3498db;
+            }
+
+            /* 下拉菜单 */
+            .dropdown {
+                display: inline-block;
+                position: relative;
+            }
+
+            .dropdown-content {
+                display: none;
+                position: absolute;
+                background: rgba(255, 255, 255, 0.95);
+                min-width: 160px;
+                box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+                border-radius: 4px;
+                top: 30px;
+                left: 0;
+                opacity: 0;
+                transform: translateY(-10px);
+                backdrop-filter: blur(5px);
+            }
+
+            .dropdown-content a {
+                display: block;
+                padding: 10px 15px;
+                margin: 0;
+                color: #666;
+            }
+
+            .dropdown-content a:hover {
+                background: rgba(240, 240, 240, 0.8);
+            }
+
+            .dropdown:hover .dropdown-content {
+                display: block;
+            }
+
+            /* 主内容 */
+            .main-content {
+                max-width: 1200px;
+                margin: 100px auto 0;
+                padding: 20px;
+                display: grid;
+                grid-template-columns: 2fr 1fr;
+                gap: 40px;
+            }
+
+            /* 文章卡片 */
+            .post-card {
+                background: rgba(255, 255, 255, 0.85);
+                border-radius: 8px;
+                padding: 20px;
+                margin-bottom: 20px;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+                opacity: 0;
+                transform: translateY(20px);
+                transition: all 0.4s ease;
+                backdrop-filter: blur(3px);
+            }
+
+            .post-card.visible {
+                opacity: 1;
+                transform: translateY(0);
+            }
+
+            .post-card:hover {
+                transform: scale(1.02);
+                box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+            }
+
+            .post-card h2 {
+                font-size: 22px;
+                color: #2c3e50;
+                margin-bottom: 10px;
+                transition: color 0.3s ease;
+            }
+
+            .post-card:hover h2 {
+                color: #3498db;
+            }
+
+            .post-card p {
+                color: #777;
+                font-size: 16px;
+                margin-bottom: 15px;
+            }
+
+            .post-card .date {
+                font-size: 14px;
+                color: #999;
+            }
+
+            /* 侧边栏 */
+            .sidebar {
+                padding: 20px;
+            }
+
+            .sidebar-widget {
+                background: rgba(255, 255, 255, 0.85);
+                padding: 20px;
+                border-radius: 8px;
+                margin-bottom: 20px;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+                opacity: 0;
+                transform: translateX(50px);
+                transition: all 0.5s ease;
+                backdrop-filter: blur(3px);
+            }
+
+            .sidebar-widget.visible {
+                opacity: 1;
+                transform: translateX(0);
+            }
+
+            .sidebar-widget h3 {
+                font-size: 18px;
+                color: #2c3e50;
+                margin-bottom: 15px;
+            }
+
+            .sidebar-widget ul {
+                list-style: none;
+            }
+
+            .sidebar-widget ul li {
+                margin-bottom: 10px;
+                transform: translateX(-10px);
+                transition: all 0.3s ease;
+            }
+
+            .sidebar-widget ul li:hover {
+                transform: translateX(0);
+            }
+
+            .sidebar-widget ul li a {
+                text-decoration: none;
+                color: #666;
+                transition: color 0.3s ease;
+            }
+
+            .sidebar-widget ul li a:hover {
+                color: #3498db;
+            }
+            /* 尾栏 */
+            .footer {
+                background: rgba(44, 62, 80, 0.9);
+                color: #fff;
+                padding: 40px 20px;
+                margin-top: 40px;
+                position: relative;
+                backdrop-filter: blur(5px);
+            }
+
+            .footer .container {
+                max-width: 1200px;
+                margin: 0 auto;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                flex-wrap: wrap;
+            }
+
+            .footer .copyright {
+                font-size: 14px;
+            }
+
+            .footer .social-links a {
+                color: #fff;
+                text-decoration: none;
+                margin-left: 20px;
+                font-size: 16px;
+                transition: color 0.3s ease;
+            }
+
+            .footer .social-links a:hover {
+                color: #3498db;
+            }
+            .back-to-top {
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                width: 40px;
+                height: 40px;
+                background: #3498db;
+                color: #fff;
+                border-radius: 50%;
+                text-align: center;
+                line-height: 40px;
+                font-size: 20px;
+                cursor: pointer;
+                opacity: 0;
+                transition: opacity 0.3s ease;
+                z-index: 1000;
+            }
+            .back-to-top.visible {
+                opacity: 1;
+            }
+
+            /* 响应式设计 */
+            @media (max-width: 768px) {
+                .main-content {
+                    grid-template-columns: 1fr;
+                }
+                .nav-links a {
+                    margin-left: 10px;
+                }
+                .dropdown-content {
+                    left: -50px;
+                }
+                .footer .container {
+                    flex-direction: column;
+                    text-align: center;
+                }
+                .footer .social-links {
+                    margin-top: 20px;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <!-- 粒子背景 -->
+        <canvas id="particle-canvas"></canvas>
+
+        <!-- 导航栏 -->
+        <nav class="navbar">
+            <div class="container">
+                <h1>休闲一刻</h1>
+                <div class="nav-links">
+                    <a href="index.html">首页</a>
+                    <a href="#">关于</a>
+                    <div class="dropdown">
+                        <a href="#">分类</a>
+                        <div class="dropdown-content">
+                            <a href="#">生活</a>
+                            <a href="#">历史</a>
+                            <a href="#">美文赏析</a>
+                        </div>
+                    </div>
+                    <a href="#">联系</a>
+                </div>
+            </div>
+        </nav>
+
+        <!-- 主内容区域 -->
+        <div class="main-content">
+            <!-- 文章列表 -->
+            <div class="posts">
+                <div class="post-card">
+                    <h2>无所求而自得</h2>
+                    <p>凡我所失，皆非我所有；凡我所求，皆受其所困；万物皆为我所用但非我所有；君子使物，不为物使；大道至简，无欲则刚；无为则无所不为，心无所求方能顺其自然。</p>
+                    <span class="date">2025-03-12</span>
+                </div>
+                <!-- <div class="post-card">
+                    <h2>响应式设计的未来</h2>
+                    <p>随着设备多样化，响应式设计已经成为现代网页开发的标配。未来的趋势将更加注重性能与用户体验...</p>
+                    <span class="date">2025-03-10</span>
+                </div> -->
+            </div>
+
+            <!-- 侧边栏 -->
+            <div class="sidebar">
+                <div class="sidebar-widget">
+                    <h3>关于我</h3>
+                    <p>一个平凡的人，专注于寻找生命的价值。</p>
+                </div>
+                <div class="sidebar-widget">
+                    <h3>热门标签</h3>
+                    <ul>
+                        <li><a href="encrypt.html">生活工具</a></li>
+                        <li><a href="QRCodeGenerate.html">生成二维码</a></li>
+                        <li><a href="#">技术</a></li>
+                    </ul>
+                </div>
+            </div>
         </div>
-        <textarea id="ciphertext"  placeholder="加密/解密后的文本"></textarea>
-        <p>加密次数: <span id="encryptCount" class="count">0</span></p>
-        <p>解密次数: <span id="decryptCount" class="count">0</span></p>
-    </div>
+         <!-- 尾栏 -->
+        <footer class="footer">
+            <div class="container">
+                <div class="copyright">
+                    &copy; 2025 休闲一刻. All Rights Reserved.
+                </div>
+                <div class="social-links">
+                    <a href="#">Twitter</a>
+                    <a href="#">GitHub</a>
+                    <a href="#">LinkedIn</a>
+                </div>
+            </div>
+        </footer>
 
-    <script>
-        let isLoggedIn = false;
-        let encryptCount = 0;
-        let decryptCount = 0;
-
-        function login() {
-            const loginPassword = document.getElementById('loginPassword').value;
-            const correctPassword = "tmzg"; // Change this to your desired password
-            
-            if (loginPassword === correctPassword) {
-                document.querySelector('.login-container').classList.add('hidden');
-                document.getElementById('mainContent').classList.remove('hidden');
-                isLoggedIn = true;
-            } else {
-                alert("密码错误，请重试。");
-            }
-        }
-
-        // Add this function to handle Enter key press
-        document.getElementById('loginPassword').addEventListener('keypress', function(event) {
-            // If the user presses the "Enter" key on the keyboard
-            if (event.key === "Enter") {
-                // Cancel the default action, if needed
-                event.preventDefault();
-                // Trigger the login button click
-                login();
-            }
-        });
-
-        // Helper function to convert string to hexadecimal
-        function stringToHex(str) {
-            return Array.from(str).reduce((hex, c) => 
-                hex + c.charCodeAt(0).toString(16).padStart(2, '0'), ''
-            );
-        }
-
-        // 加密函数
-        async function encrypt() {
-            if (!isLoggedIn) {
-                alert("请先登录。");
-                return;
-            }
-
-            const password = document.getElementById('password').value;
-            const saltString = document.getElementById('salt').value;
-            const plaintext = document.getElementById('plaintext').value || document.getElementById('ciphertext').value;
-            
-            if (!password || !saltString || !plaintext) {
-                alert("请输入密码、盐值和文本。");
-                return;
-            }
-
-            try {
-                const saltHex = stringToHex(saltString);
-                const salt = new Uint8Array(saltHex.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
-                const key = await deriveKey(password, salt);
-                const iv = crypto.getRandomValues(new Uint8Array(12));
-                
-                const encoded = new TextEncoder().encode(plaintext);
-                
-                const encrypted = await window.crypto.subtle.encrypt(
-                    { name: "AES-GCM", iv: iv },
-                    key,
-                    encoded
+        <!-- 返回顶部按钮 -->
+        <div class="back-to-top">↑</div>
+        <!-- jQuery 和粒子效果脚本 -->
+        <!-- <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script> -->
+        
+        <script>
+            $(document).ready(function() {
+                // 导航栏平滑滚动效果
+                $('.nav-links a').on('click', function(e) {
+                    if ($(this).attr('href') !== '#') {
+                        e.preventDefault();
+                        const target = $(this).attr('href');
+                        $('html, body').animate({
+                            scrollTop: $(target).offset().top - 80
+                        }, 800);
+                    }
+                });
+    
+                // 下拉菜单动画
+                $('.dropdown').hover(
+                    function() {
+                        $(this).find('.dropdown-content')
+                            .css('display', 'block')
+                            .animate({ opacity: 1, top: '40px' }, 300);
+                    },
+                    function() {
+                        $(this).find('.dropdown-content')
+                            .animate({ opacity: 0, top: '30px' }, 300, function() {
+                                $(this).css('display', 'none');
+                            });
+                    }
                 );
-
-                const encryptedArray = Array.from(new Uint8Array(encrypted));
-                const ivArray = Array.from(iv);
-
-                const combined = ivArray.concat(encryptedArray);
-
-                document.getElementById('ciphertext').value = btoa(String.fromCharCode.apply(null, combined));
-                document.getElementById('plaintext').value = '';
-
-                encryptCount++;
-                document.getElementById('encryptCount').textContent = encryptCount;
-            } catch (error) {
-                console.error("加密失败:", error);
-                alert("加密失败。请重试。");
-            }
-        }
-
-        // 解密函数
-        async function decrypt() {
-            if (!isLoggedIn) {
-                alert("请先登录。");
-                return;
-            }
-
-            // ... (rest of the decrypt function remains unchanged from previous version)
-            const password = document.getElementById('password').value;
-            const saltString = document.getElementById('salt').value;
-            const ciphertext = document.getElementById('ciphertext').value;
-
-            if (!password || !saltString || !ciphertext) {
-                alert("请输入密码、盐值和加密后的文本。");
-                return;
-            }
-
-            try {
-                const saltHex = stringToHex(saltString);
-                const salt = new Uint8Array(saltHex.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
-                const key = await deriveKey(password, salt);
-                const combined = new Uint8Array(atob(ciphertext).split('').map(c => c.charCodeAt(0)));
-                const iv = combined.slice(0, 12);
-                const data = combined.slice(12);
-
-                const decrypted = await window.crypto.subtle.decrypt(
-                    { name: "AES-GCM", iv: iv },
-                    key,
-                    data
-                );
-
-                document.getElementById('plaintext').value = new TextDecoder().decode(decrypted);
-                document.getElementById('ciphertext').value = '';
-
-                decryptCount++;
-                document.getElementById('decryptCount').textContent = decryptCount;
-            } catch (error) {
-                console.error("解密失败:", error);
-                alert("解密失败。请检查密码、盐值或加密文本。");
-            }
-        }
-
-        // 从密码和盐值派生密钥
-        async function deriveKey(password, salt) {
-            // ... (unchanged from previous version)
-            const iterations = 1000009;
-
-            const keyMaterial = await window.crypto.subtle.importKey(
-                "raw",
-                new TextEncoder().encode(password),
-                {name: "PBKDF2"},
-                false,
-                ["deriveBits", "deriveKey"]
-            );
-
-            return await window.crypto.subtle.deriveKey(
-                {
-                    "name": "PBKDF2",
-                    salt: salt,
-                    "iterations": iterations,
-                    "hash": "SHA-256"
-                },
-                keyMaterial,
-                { "name": "AES-GCM", "length": 256},
-                true,
-                ["encrypt", "decrypt"]
-            );
-        }
-
-        // 重置函数
-        function reset() {
-            if (!isLoggedIn) {
-                alert("请先登录。");
-                return;
-            }
-
-            // ... (rest of the reset function remains unchanged from previous version)
-            document.getElementById('password').value = '';
-            document.getElementById('salt').value = '';
-            document.getElementById('plaintext').value = '';
-            document.getElementById('ciphertext').value = '';
-            encryptCount = 0;
-            decryptCount = 0;
-            document.getElementById('encryptCount').textContent = encryptCount;
-            document.getElementById('decryptCount').textContent = decryptCount;
-        }
-        /**
-         * 
-         *  js如何实现对密码的加密解密，安全要求要高，可以断网处理
-         * Key Points:
-            Password Input: Never store passwords in plain text. Here, we derive the key each time from the password input.
-            PBKDF2: This adds a layer of security by making key derivation computationally expensive.
-            AES-GCM: Provides both confidentiality and authenticity. Each encryption uses a new IV to ensure unique ciphertexts even with the same plaintext and key.
-            Offline Capability: This setup works without internet since all operations are done client-side. However, remember to handle key storage securely in real applications.
-            Error Handling: Basic error handling is included to give feedback to the user.
-            Security Notes: 
-            Salt: In a real application, salt should be unique for each user and stored securely alongside the encrypted data.
-            Iterations: The number of iterations for PBKDF2 should be as high as performance allows.
-            Key Management: Never store keys or passwords in clear text. In real apps, consider using secure local storage solutions or hardware security modules if available.
-
-            This implementation demonstrates secure password-based encryption for offline use, but remember, security requires ongoing attention, updates, and potentially integrating with server-side solutions for additional layers of protection.
-         * */
-    </script>
-</body>
+    
+                // 文章卡片和侧边栏动画
+                function checkScroll() {
+                    $('.post-card, .sidebar-widget').each(function() {
+                        const elementTop = $(this).offset().top;
+                        const windowBottom = $(window).scrollTop() + $(window).height();
+                        if (elementTop < windowBottom - 50) {
+                            $(this).addClass('visible');
+                        }
+                    });
+                }
+    
+                checkScroll();
+                $(window).on('scroll', checkScroll);
+    
+                // 导航栏滚动效果
+                $(window).scroll(function() {
+                    if ($(this).scrollTop() > 50) {
+                        $('.navbar').css({
+                            'background': 'rgba(255,255,255,0.95)',
+                            'padding': '15px'
+                        });
+                        $('.back-to-top').addClass('visible');
+                    } else {
+                        $('.navbar').css({
+                            'background': 'rgba(255,255,255,0.9)',
+                            'padding': '20px'
+                        });
+                        $('.back-to-top').removeClass('visible');
+                    }
+                });
+    
+                // 返回顶部按钮
+                $('.back-to-top').on('click', function() {
+                    $('html, body').animate({ scrollTop: 0 }, 800);
+                });
+    
+                // 粒子效果
+                const canvas = document.getElementById('particle-canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+    
+                let particlesArray = [];
+                const numberOfParticles = 100;
+    
+                class Particle {
+                    constructor() {
+                        this.x = Math.random() * canvas.width;
+                        this.y = Math.random() * canvas.height;
+                        this.size = Math.random() * 5 + 1;
+                        this.speedX = Math.random() * 1 - 0.5;
+                        this.speedY = Math.random() * 1 - 0.5;
+                    }
+                    update() {
+                        this.x += this.speedX;
+                        this.y += this.speedY;
+                        if (this.size > 0.2) this.size -= 0.01;
+                    }
+                    draw() {
+                        ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+                        ctx.beginPath();
+                        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                }
+    
+                function init() {
+                    particlesArray = [];
+                    for (let i = 0; i < numberOfParticles; i++) {
+                        particlesArray.push(new Particle());
+                    }
+                }
+    
+                function animate() {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    for (let i = 0; i < particlesArray.length; i++) {
+                        particlesArray[i].update();
+                        particlesArray[i].draw();
+    
+                        if (particlesArray[i].size <= 0.2) {
+                            particlesArray.splice(i, 1);
+                            i--;
+                            particlesArray.push(new Particle());
+                        }
+                    }
+                    requestAnimationFrame(animate);
+                }
+    
+                init();
+                animate();
+    
+                window.addEventListener('resize', function() {
+                    canvas.width = window.innerWidth;
+                    canvas.height = window.innerHeight;
+                    init();
+                });
+            });
+        </script>
+    </body>
 </html>
