@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Local Music Player</title>
+    <script src="./js/jquery.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Arial', sans-serif;
+            background: #f0f0f0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: auto;
+            transition: background 0.5s ease;
+        }
+        .background-animation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background: linear-gradient(135deg, rgba(200, 200, 200, 0.2), rgba(150, 150, 150, 0.1));
+            animation: subtleFlow 10s infinite ease-in-out;
+            transition: background 0.5s ease, opacity 0.5s ease;
+        }
+        @keyframes subtleFlow {
+            0% { transform: translateY(0); opacity: 0.5; }
+            50% { transform: translateY(-10px); opacity: 0.7; }
+            100% { transform: translateY(0); opacity: 0.5; }
+        }
+        .player {
+            width: 550px;
+            max-width: 90vw;
+            background: #ffffff;
+            border: 1px solid #4682b4;
+            border-radius: 12px; /* 更大圆角，提升现代感 */
+            padding: 30px; /* 更大内边距，增加呼吸感 */
+            box-shadow: 0 6px 24px rgba(0, 0, 0, 0.15); /* 更柔和的阴影 */
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            gap: 20px; /* 更大间距，布局更舒展 */
+            box-sizing: border-box;
+            transition: all 0.5s ease;
+        }
+        .top-controls {
+            display: flex;
+            gap: 12px; /* 按钮间距优化 */
+            justify-content: center;
+            flex-wrap: wrap; /* 支持小屏幕换行 */
+        }
+        .playlist {
+            max-height: 320px; /* 增加高度，显示更多内容 */
+            overflow-y: auto;
+            padding: 15px;
+            background: rgba(245, 245, 245, 0.95); /* 更高透明度，层次感更强 */
+            border-radius: 10px;
+            border: 1px solid #4682b4;
+            transition: all 0.5s ease;
+            scrollbar-width: thin; /* 优化滚动条 */
+            scrollbar-color: #4682b4 #e0e0e0;
+        }
+        .playlist-item {
+            padding: 12px;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: background 0.3s ease, transform 0.2s ease;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: #333;
+            font-weight: 500; /* 加粗文字，提升可读性 */
+        }
+        .playlist-item:hover {
+            background: rgba(70, 130, 180, 0.15);
+            transform: scale(1.02);
+        }
+        .playlist-item.active {
+            background: rgba(70, 130, 180, 0.35);
+            color: #fff; /* 激活状态文字变白 */
+        }
+        .remove-btn {
+            background: none;
+            border: none;
+            color: #ff4500;
+            cursor: pointer;
+            font-size: 16px;
+            transition: color 0.3s ease, transform 0.2s ease;
+        }
+        .remove-btn:hover {
+            color: #ff6347;
+            transform: scale(1.2); /* 放大效果 */
+        }
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px; /* 更大间距 */
+            margin: 20px 0;
+            flex-wrap: wrap; /* 支持小屏幕换行 */
+        }
+        .progress {
+            width: 100%;
+            height: 8px; /* 更粗的进度条 */
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 4px;
+            cursor: pointer;
+            position: relative;
+            border: 1px solid #4682b4;
+            transition: all 0.5s ease;
+        }
+        .progress-bar {
+            height: 100%;
+            width: 0;
+            background: #4682b4;
+            border-radius: 4px;
+            transition: width 0.1s linear;
+        }
+        .time {
+            font-size: 14px; /* 更大字体 */
+            margin: 10px 0;
+            display: flex;
+            justify-content: space-between;
+            color: #333;
+            transition: color 0.5s ease;
+        }
+        button {
+            background: none;
+            border: 1px solid #4682b4;
+            color: #333;
+            cursor: pointer;
+            padding: 10px 20px; /* 更大按钮 */
+            font-size: 14px;
+            font-weight: 600; /* 更粗字体 */
+            text-transform: uppercase;
+            transition: all 0.3s ease;
+            border-radius: 8px; /* 更柔和圆角 */
+            position: relative;
+            overflow: hidden; /* 支持渐变动画 */
+        }
+        button::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            transition: width 0.6s ease, height 0.6s ease;
+        }
+        button:hover::after {
+            width: 200%;
+            height: 200%;
+        }
+        button:hover {
+            background: #4682b4;
+            color: #fff;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(70, 130, 180, 0.4);
+        }
+        button:active {
+            background: #3a6b9c;
+            transform: translateY(0);
+            box-shadow: none;
+        }
+        button.active {
+            background: #4682b4;
+            color: #fff;
+        }
+        input[type="range"] {
+            width: 120px;
+            accent-color: #4682b4;
+            transition: all 0.5s ease;
+            cursor: pointer;
+        }
+        .volume {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap; /* 支持小屏幕换行 */
+        }
+        h2 {
+            margin: 0;
+            text-align: center;
+            color: #4682b4;
+            font-size: 24px; /* 更大标题 */
+            font-weight: 700; /* 更粗标题 */
+            letter-spacing: 1px; /* 增加字间距 */
+            transition: color 0.5s ease;
+        }
+        /* test */
+    </style>
+</head>
+<body>
+    <div class="background-animation" id="backgroundAnimation"></div>
+    <div class="player" id="player">
+        <h2>Local Music Player</h2>
+        <div class="top-controls">
+            <button id="musicInputBtn">🆕</button>
+            <button id="savePlaylist">⏫</button>
+            <button id="loadPlaylist">⏬</button>
+            <button id="switchBackground">🔃</button>
+        </div>
+        <div class="playlist" id="playlist"></div>
+        <div class="progress">
+            <div class="progress-bar" id="progressBar"></div>
+        </div>
+        <div class="time">
+            <span id="currentTime">0:00</span>
+            <span id="duration">0:00</span>
+        </div>
+        <div class="controls">
+            <!-- <button id="prev">Previous</button>
+            <button id="play">Play</button>
+            <button id="pause">Pause</button>
+            <button id="stop">Stop</button>
+            <button id="next">Next</button>
+            <button id="loop">Loop</button>
+            <button id="singleLoop">Repeat</button>
+            <button id="random">Shuffle</button> -->
+            <button id="prev">◀️</button>
+            <button id="play">⏸️</button>
+            <button id="pause">⏯</button>
+            <button id="next">▶️</button>
+            <button id="loop">🔁</button>
+            <button id="singleLoop">🔂</button>
+            <button id="random">🔀</button>
+        </div>
+        <div class="volume">
+            <span>Volume:</span>
+            <button id="volDown">-</button>
+            <input type="range" id="volume" min="0" max="1" step="0.1" value="1">
+            <button id="volUp">+</button>
+        </div>
+    </div>
+
+    <!-- <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script> -->
+    <script>
+        $(document).ready(function() {
+            const audio = new Audio();
+            let playlist = [];
+            let currentIndex = -1;
+            let isLoop = false;
+            let isSingleLoop = false;
+            let isRandom = false;
+            let lastStyle = null; // 缓存上一次的风格，避免重复应用
+
+            const styles = [
+                {
+                    bodyBg: '#1e3a5f',
+                    bgGradient: 'linear-gradient(135deg, rgba(30, 58, 95, 0.8), rgba(100, 150, 200, 0.3))',
+                    playerBg: '#ffffff',
+                    playerBorder: '1px solid #4682b4',
+                    playerRadius: '12px',
+                    playerShadow: '0 6px 24px rgba(0, 0, 0, 0.15)',
+                    playerWidth: '550px',
+                    playerFont: 'Arial, sans-serif',
+                    textColor: '#333',
+                    playlistBg: 'rgba(245, 245, 245, 0.95)',
+                    playlistHeight: '320px',
+                    playlistRadius: '10px',
+                    playlistBorder: '1px solid #4682b4',
+                    buttonColor: '#333',
+                    buttonBorder: '1px solid #4682b4',
+                    buttonRadius: '8px',
+                    buttonHoverBg: '#4682b4',
+                    buttonActiveBg: '#3a6b9c',
+                    accentColor: '#4682b4',
+                    volumeWidth: '120px'
+                },
+                {
+                    bodyBg: '#1e1e1e',
+                    bgGradient: 'linear-gradient(135deg, rgba(50, 50, 50, 0.3), rgba(20, 20, 20, 0.5))',
+                    playerBg: '#2a2a2a',
+                    playerBorder: '2px solid #d4a017',
+                    playerRadius: '10px',
+                    playerShadow: '0 6px 25px rgba(0, 0, 0, 0.5), inset 0 0 8px rgba(212, 160, 23, 0.2)',
+                    playerWidth: '500px',
+                    playerFont: 'Times New Roman, serif',
+                    textColor: '#e0e0e0',
+                    playlistBg: 'rgba(60, 60, 60, 0.9)', // 提亮背景，优化可读性
+                    playlistHeight: '300px',
+                    playlistRadius: '10px',
+                    playlistBorder: '1px solid #d4a017',
+                    buttonColor: '#e0e0e0',
+                    buttonBorder: '1px solid #d4a017',
+                    buttonRadius: '6px',
+                    buttonHoverBg: '#d4a017',
+                    buttonActiveBg: '#b8860b',
+                    accentColor: '#d4a017',
+                    volumeWidth: '100px'
+                },
+                {
+                    bodyBg: '#e6f3e6',
+                    bgGradient: 'linear-gradient(135deg, rgba(144, 238, 144, 0.3), rgba(255, 255, 255, 0.5))',
+                    playerBg: '#ffffff',
+                    playerBorder: '1px solid #2e8b57',
+                    playerRadius: '14px',
+                    playerShadow: '0 6px 15px rgba(0, 0, 0, 0.1)',
+                    playerWidth: '600px',
+                    playerFont: 'Helvetica, sans-serif',
+                    textColor: '#2e8b57',
+                    playlistBg: 'rgba(240, 248, 240, 0.95)',
+                    playlistHeight: '340px',
+                    playlistRadius: '10px',
+                    playlistBorder: '1px solid #2e8b57',
+                    buttonColor: '#2e8b57',
+                    buttonBorder: '1px solid #2e8b57',
+                    buttonRadius: '8px',
+                    buttonHoverBg: '#2e8b57',
+                    buttonActiveBg: '#1f5f3b',
+                    accentColor: '#2e8b57',
+                    volumeWidth: '140px'
+                },
+                // {
+                //     bodyBg: '#2c3e50',
+                //     bgGradient: 'linear-gradient(135deg, rgba(44, 62, 80, 0.8), rgba(80, 100, 120, 0.5))',
+                //     playerBg: '#2a2a2a',
+                //     playerBorder: '3px solid #f0c14b',
+                //     playerRadius: '8px',
+                //     playerShadow: '0 6px 25px rgba(0, 0, 0, 0.6)',
+                //     playerWidth: '450px',
+                //     playerFont: 'Consolas, monospace',
+                //     textColor: '#f0c14b',
+                //     playlistBg: 'rgba(50, 50, 50, 0.9)',
+                //     playlistHeight: '280px',
+                //     playlistRadius: '8px',
+                //     playlistBorder: '1px solid #f0c14b',
+                //     buttonColor: '#f0c14b',
+                //     buttonBorder: '1px solid #f0c14b',
+                //     buttonRadius: '4px',
+                //     buttonHoverBg: '#f0c14b',
+                //     buttonActiveBg: '#d4a017',
+                //     accentColor: '#f0c14b',
+                //     volumeWidth: '90px'
+                // }
+            ];
+            let currentStyle = 0;
+
+            // 应用风格的函数，避免重复操作
+            function applyStyle(style) {
+                if (lastStyle === style) return; // 避免重复应用
+                $('body').css('background', style.bodyBg);
+                $('#backgroundAnimation').css('background', style.bgGradient);
+                $('#player').css({
+                    'background': style.playerBg,
+                    'border': style.playerBorder,
+                    'border-radius': style.playerRadius,
+                    'box-shadow': style.playerShadow,
+                    'width': style.playerWidth,
+                    'font-family': style.playerFont,
+                    'color': style.textColor
+                });
+                $('.playlist').css({
+                    'background': style.playlistBg,
+                    'max-height': style.playlistHeight,
+                    'border-radius': style.playlistRadius,
+                    'border': style.playlistBorder
+                });
+                $('.playlist-item').css('color', style.textColor);
+                $('.time').css('color', style.textColor);
+                $('.progress').css('border', style.playlistBorder);
+                $('button').css({
+                    'color': style.buttonColor,
+                    'border': style.buttonBorder,
+                    'border-radius': style.buttonRadius
+                });
+                $('button:hover').css('background', style.buttonHoverBg);
+                $('button:active').css('background', style.buttonActiveBg);
+                $('button.active').css('background', style.buttonActiveBg);
+                $('#volume').css({
+                    'accent-color': style.accentColor,
+                    'width': style.volumeWidth
+                });
+                $('#progressBar').css('background', style.accentColor);
+                $('h2').css('color', style.accentColor);
+                lastStyle = style; // 更新缓存
+            }
+
+            // 添加音乐文件
+            $('#musicInputBtn').click(() => {
+                const input = $('<input type="file" accept="audio/*" multiple>');
+                input.change((e) => {
+                    const files = e.target.files;
+                    for (let file of files) {
+                        const url = URL.createObjectURL(file);
+                        playlist.push({ name: file.name, url: url, file: file });
+                    }
+                    updatePlaylistUI();
+                });
+                input.click();
+            });
+
+            // 更新播放列表 UI，优化性能
+            function updatePlaylistUI() {
+                const $playlist = $('#playlist');
+                const currentStyleObj = styles[currentStyle];
+                const fragment = document.createDocumentFragment(); // 使用文档片段减少重绘
+                playlist.forEach((song, index) => {
+                    const $item = $(`<div class="playlist-item">${song.name}<button class="remove-btn">×</button></div>`);
+                    if (index === currentIndex) $item.addClass('active');
+                    $item.find('.remove-btn').click((e) => {
+                        e.stopPropagation();
+                        playlist.splice(index, 1);
+                        if (index === currentIndex) {
+                            audio.pause();
+                            currentIndex = -1;
+                            $('#pause').hide();
+                            $('#play').show();
+                        } else if (index < currentIndex) {
+                            currentIndex--;
+                        }
+                        updatePlaylistUI();
+                    });
+                    $item.click(() => playSong(index));
+                    fragment.appendChild($item[0]);
+                });
+                $playlist.empty().append(fragment);
+                $playlist.css({
+                    'background': currentStyleObj.playlistBg,
+                    'max-height': currentStyleObj.playlistHeight,
+                    'border-radius': currentStyleObj.playlistRadius,
+                    'border': currentStyleObj.playlistBorder
+                });
+            }
+
+            // 播放歌曲
+            function playSong(index) {
+                if (index < 0 || index >= playlist.length) return;
+                currentIndex = index;
+                audio.src = playlist[index].url;
+                audio.play();
+                $('#play').hide();
+                $('#pause').show();
+                updatePlaylistUI();
+            }
+
+            // 播放控制
+            $('#play').click(() => {
+                if (audio.src) {
+                    audio.play();
+                    $('#play').hide();
+                    $('#pause').show();
+                }
+            });
+            $('#pause').click(() => {
+                audio.pause();
+                $('#pause').hide();
+                $('#play').show();
+            });
+            $('#stop').click(() => {
+                audio.pause();
+                audio.currentTime = 0;
+                $('#pause').hide();
+                $('#play').show();
+            });
+
+            // 上一首/下一首
+            $('#prev').click(() => {
+                let nextIndex = isRandom ? Math.floor(Math.random() * playlist.length) : currentIndex - 1;
+                if (nextIndex < 0) nextIndex = playlist.length - 1;
+                playSong(nextIndex);
+            });
+            $('#next').click(() => {
+                let nextIndex = isRandom ? Math.floor(Math.random() * playlist.length) : currentIndex + 1;
+                if (nextIndex >= playlist.length) nextIndex = 0;
+                playSong(nextIndex);
+            });
+
+            // 循环/单曲循环/随机
+            $('#loop').click(() => {
+                isLoop = !isLoop;
+                $('#loop').toggleClass('active', isLoop);
+            });
+            $('#singleLoop').click(() => {
+                isSingleLoop = !isSingleLoop;
+                $('#singleLoop').toggleClass('active', isSingleLoop);
+            });
+            $('#random').click(() => {
+                isRandom = !isRandom;
+                $('#random').toggleClass('active', isRandom);
+            });
+
+            // 音量控制
+            $('#volume').on('input', function() { audio.volume = this.value; }); // 直接使用原生值
+            $('#volUp').click(() => {
+                audio.volume = Math.min(1, audio.volume + 0.1);
+                $('#volume').val(audio.volume);
+            });
+            $('#volDown').click(() => {
+                audio.volume = Math.max(0, audio.volume - 0.1);
+                $('#volume').val(audio.volume);
+            });
+
+            // 进度条更新（节流优化）
+            let lastUpdate = 0;
+            audio.ontimeupdate = () => {
+                const now = Date.now();
+                if (now - lastUpdate < 100) return; // 每100ms更新一次
+                lastUpdate = now;
+                const percent = (audio.currentTime / audio.duration) * 100;
+                $('#progressBar').css('width', percent + '%');
+                $('#currentTime').text(formatTime(audio.currentTime));
+                $('#duration').text(formatTime(audio.duration));
+            };
+            $('.progress').click(function(e) {
+                const percent = e.offsetX / this.offsetWidth;
+                audio.currentTime = percent * audio.duration;
+            });
+
+            // 歌曲结束处理
+            audio.onended = () => {
+                if (isSingleLoop) {
+                    audio.currentTime = 0;
+                    audio.play();
+                } else if (isLoop || isRandom || currentIndex < playlist.length - 1) {
+                    $('#next').click();
+                }
+            };
+
+            // 保存播放列表
+            $('#savePlaylist').click(() => {
+                const data = JSON.stringify(playlist.map(song => ({ name: song.name })));
+                const blob = new Blob([data], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'playlist.json';
+                a.click();
+                URL.revokeObjectURL(url);
+            });
+
+            // 加载播放列表
+            $('#loadPlaylist').click(() => {
+                const jsonInput = document.createElement('input');
+                jsonInput.type = 'file';
+                jsonInput.accept = '.json';
+                jsonInput.addEventListener('change', (e) => {
+                    const jsonFile = e.target.files[0];
+                    if (!jsonFile) return;
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        try {
+                            const loaded = JSON.parse(event.target.result);
+                            const folderInput = document.createElement('input');
+                            folderInput.type = 'file';
+                            folderInput.setAttribute('webkitdirectory', '');
+                            folderInput.setAttribute('directory', '');
+                            folderInput.addEventListener('change', (e) => {
+                                const files = Array.from(e.target.files);
+                                playlist = loaded.map(song => {
+                                    const matchedFile = files.find(f => f.name === song.name || f.webkitRelativePath.endsWith(song.name));
+                                    return matchedFile ? {
+                                        name: song.name,
+                                        url: URL.createObjectURL(matchedFile),
+                                        file: matchedFile
+                                    } : null;
+                                }).filter(Boolean);
+                                updatePlaylistUI();
+                                if (playlist.length === 0) {
+                                    alert('No matching audio files found!');
+                                } else {
+                                    alert(`Loaded ${playlist.length} songs.`);
+                                }
+                            });
+                            folderInput.click();
+                        } catch (err) {
+                            alert('Failed to load playlist!');
+                            console.error(err);
+                        }
+                    };
+                    reader.readAsText(jsonFile);
+                });
+                jsonInput.click();
+            });
+
+            // 切换风格
+            $('#switchBackground').click(() => {
+                currentStyle = (currentStyle + 1) % styles.length;
+                applyStyle(styles[currentStyle]);
+                updatePlaylistUI(); // 同步更新播放列表样式
+            });
+
+            // 时间格式化函数
+            function formatTime(seconds) {
+                const min = Math.floor(seconds / 60);
+                const sec = Math.floor(seconds % 60);
+                return `${min}:${sec < 10 ? '0' + sec : sec}`;
+            }
+
+            // 初始化
+            $('#pause').hide();
+            applyStyle(styles[currentStyle]); // 应用初始风格
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>星际防线 - 增强版</title>
+    <style>
+        body {
+            margin: 0;
+            background: #1a1a2e;
+            overflow: hidden;
+            font-family: 'Orbitron', sans-serif;
+            touch-action: none; /* 优化触控 */
+        }
+        #gameCanvas {
+            display: block;
+            margin: 0 auto;
+            background: linear-gradient(135deg, #16213e, #0f3460);
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+        }
+        .ui-overlay {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: #e94560;
+            text-shadow: 0 0 5px rgba(233, 69, 96, 0.8);
+            pointer-events: none;
+        }
+        .controls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        button {
+            padding: 12px 24px;
+            background: linear-gradient(45deg, #e94560, #533483);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            pointer-events: all;
+        }
+        button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 15px rgba(233, 69, 96, 0.7);
+        }
+        button:active {
+            transform: scale(0.95);
+        }
+        .disabled {
+            background: #444;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+        .tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            pointer-events: none;
+            display: none;
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <canvas id="gameCanvas" width="1000" height="700"></canvas>
+    <div class="ui-overlay">
+        <p>资源: <span id="resources">500</span> | 分数: <span id="score">0</span> | 波次: <span id="wave">1</span></p>
+        <p id="message"></p>
+    </div>
+    <div class="controls">
+        <button onmousedown="selectTower('laser')" ontouchstart="selectTower('laser')">激光塔 (100)</button>
+        <button onmousedown="selectTower('missile')" ontouchstart="selectTower('missile')">导弹塔 (150)</button>
+        <button onmousedown="selectTower('plasma')" ontouchstart="selectTower('plasma')">等离子塔 (200)</button>
+    </div>
+    <div class="tooltip" id="tooltip"></div>
+
+    <audio id="shootSound" src="https://www.soundjay.com/buttons/beep-01a.mp3"></audio>
+    <audio id="explosionSound" src="https://www.soundjay.com/explosions/explosion-01.mp3"></audio>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const tooltip = document.getElementById('tooltip');
+        const shootSound = document.getElementById('shootSound');
+        const explosionSound = document.getElementById('explosionSound');
+
+        let resources = 500;
+        let score = 0;
+        let wave = 1;
+        let enemiesRemaining = 0;
+        const towers = [];
+        const enemies = [];
+        const projectiles = [];
+        const particles = [];
+        let selectedTower = null;
+
+        // 粒子效果
+        class Particle {
+            constructor(x, y, color) {
+                this.x = x;
+                this.y = y;
+                this.color = color;
+                this.size = Math.random() * 5 + 1;
+                this.life = 20;
+                this.vx = (Math.random() - 0.5) * 4;
+                this.vy = (Math.random() - 0.5) * 4;
+            }
+            update() { this.x += this.vx; this.y += this.vy; this.life--; }
+            draw() {
+                ctx.globalAlpha = this.life / 20;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+                ctx.globalAlpha = 1;
+            }
+        }
+
+        // 炮塔类
+        class Tower {
+            constructor(x, y, type) {
+                this.x = x;
+                this.y = y;
+                this.type = type;
+                this.level = 1;
+                this.cooldown = 0;
+                this.setStats();
+            }
+            setStats() {
+                if (this.type === 'laser') {
+                    this.radius = 25; this.damage = 15; this.cooldownMax = 20; this.range = 200; this.color = '#00ffff';
+                } else if (this.type === 'missile') {
+                    this.radius = 30; this.damage = 40; this.cooldownMax = 60; this.range = 250; this.color = '#ffaa00';
+                } else if (this.type === 'plasma') {
+                    this.radius = 35; this.damage = 25; this.cooldownMax = 40; this.range = 300; this.color = '#ff00ff';
+                }
+            }
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+                ctx.lineWidth = 2;
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+                ctx.stroke();
+                ctx.fillStyle = 'white';
+                ctx.font = '14px Orbitron';
+                ctx.fillText(this.level, this.x - 5, this.y + 5);
+            }
+            shoot() {
+                if (this.cooldown <= 0) {
+                    const target = this.findTarget();
+                    if (target) {
+                        projectiles.push(new Projectile(this.x, this.y, target, this.type, this.damage));
+                        this.cooldown = this.cooldownMax;
+                        shootSound.currentTime = 0;
+                        shootSound.play().catch(() => {});
+                    }
+                }
+            }
+            findTarget() {
+                return enemies.reduce((closest, enemy) => {
+                    const dx = enemy.x - this.x;
+                    const dy = enemy.y - this.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    if (distance <= this.range && (!closest || distance < closest.distance)) {
+                        return { enemy, distance };
+                    }
+                    return closest;
+                }, null)?.enemy || null;
+            }
+            upgrade() {
+                const cost = this.level * 100;
+                if (this.level < 3 && resources >= cost) {
+                    resources -= cost;
+                    this.level++;
+                    this.damage += 10;
+                    this.radius += 5;
+                    this.range += 20;
+                    updateUI();
+                }
+            }
+        }
+
+        // 投射物类
+        class Projectile {
+            constructor(x, y, target, type, damage) {
+                this.x = x;
+                this.y = y;
+                this.target = target;
+                this.type = type;
+                this.damage = damage;
+                this.speed = type === 'laser' ? 10 : 6;
+            }
+            draw() {
+                ctx.beginPath();
+                if (this.type === 'laser') {
+                    ctx.moveTo(this.x, this.y);
+                    ctx.lineTo(this.target.x, this.target.y);
+                    ctx.strokeStyle = '#00ffff';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                } else {
+                    ctx.arc(this.x, this.y, 5, 0, Math.PI * 2);
+                    ctx.fillStyle = this.type === 'missile' ? '#ffaa00' : '#ff00ff';
+                    ctx.fill();
+                }
+            }
+            update() {
+                if (!this.target || this.target.health <= 0) return;
+                const dx = this.target.x - this.x;
+                const dy = this.target.y - this.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                if (distance < this.speed) {
+                    this.hit();
+                } else {
+                    this.x += (dx / distance) * this.speed;
+                    this.y += (dy / distance) * this.speed;
+                }
+            }
+            hit() {
+                this.target.health -= this.damage;
+                for (let i = 0; i < 10; i++) {
+                    particles.push(new Particle(this.x, this.y, this.type === 'laser' ? '#00ffff' : '#ff00ff'));
+                }
+                if (this.target.health <= 0) {
+                    explosionSound.currentTime = 0;
+                    explosionSound.play().catch(() => {});
+                }
+            }
+        }
+
+        // 敌人类
+        class Enemy {
+            constructor(type, wave) {
+                this.type = type;
+                this.path = this.generatePath();
+                this.x = this.path[0].x;
+                this.y = this.path[0].y;
+                this.pathIndex = 0;
+                this.setStats(wave);
+            }
+            setStats(wave) {
+                if (this.type === 'speed') {
+                    this.speed = 2 + wave * 0.3;
+                    this.health = 30 + wave * 10;
+                    this.radius = 15;
+                    this.color = '#00ff00';
+                } else if (this.type === 'armor') {
+                    this.speed = 1 + wave * 0.1;
+                    this.health = 100 + wave * 30;
+                    this.radius = 25;
+                    this.color = '#ff4444';
+                } else if (this.type === 'boss') {
+                    this.speed = 0.5 + wave * 0.05;
+                    this.health = 500 + wave * 100;
+                    this.radius = 40;
+                    this.color = '#ff00ff';
+                }
+                this.maxHealth = this.health;
+            }
+            generatePath() {
+                const midPoints = wave > 5 ? 2 : 1;
+                const path = [{ x: -20, y: Math.random() * canvas.height }];
+                for (let i = 0; i < midPoints; i++) {
+                    path.push({ x: canvas.width * (i + 1) / (midPoints + 1), y: Math.random() * canvas.height });
+                }
+                path.push({ x: canvas.width + 20, y: Math.random() * canvas.height });
+                return path;
+            }
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+                ctx.lineWidth = 2;
+                ctx.strokeStyle = '#fff';
+                ctx.stroke();
+                ctx.fillStyle = 'white';
+                ctx.fillRect(this.x - 20, this.y - 30, 40 * (this.health / this.maxHealth), 5);
+            }
+            update() {
+                const target = this.path[this.pathIndex];
+                const dx = target.x - this.x;
+                const dy = target.y - this.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                if (distance < this.speed) {
+                    this.pathIndex++;
+                    if (this.pathIndex >= this.path.length) return true;
+                } else {
+                    this.x += (dx / distance) * this.speed;
+                    this.y += (dy / distance) * this.speed;
+                }
+                return false;
+            }
+        }
+
+        // UI更新
+        function updateUI() {
+            document.getElementById('resources').textContent = resources;
+            document.getElementById('score').textContent = score;
+            document.getElementById('wave').textContent = wave;
+        }
+
+        // 选择炮塔
+        function selectTower(type) {
+            const costs = { laser: 100, missile: 150, plasma: 200 };
+            if (resources >= costs[type]) {
+                selectedTower = type;
+                document.getElementById('message').textContent = `点击放置${type}塔`;
+            }
+        }
+
+        // 波次生成
+        function spawnWave() {
+            enemiesRemaining = wave > 5 ? wave * 3 + 1 : wave * 3; // BOSS波次额外敌人
+            const isBossWave = wave % 5 === 0;
+            for (let i = 0; i < enemiesRemaining; i++) {
+                setTimeout(() => {
+                    if (isBossWave && i === enemiesRemaining - 1) {
+                        enemies.push(new Enemy('boss', wave));
+                    } else {
+                        enemies.push(new Enemy(Math.random() < 0.5 ? 'speed' : 'armor', wave));
+                    }
+                }, i * 1500);
+            }
+            document.getElementById('message').textContent = isBossWave ? `BOSS第 ${wave} 波入侵！` : `第 ${wave} 波入侵！`;
+        }
+
+        // 主循环
+        function gameLoop() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            if (enemies.length === 0 && enemiesRemaining === 0) {
+                wave++;
+                resources += wave * 50;
+                spawnWave();
+                updateUI();
+            }
+
+            towers.forEach(tower => {
+                tower.cooldown--;
+                tower.shoot();
+                tower.draw();
+            });
+
+            projectiles.forEach((proj, i) => {
+                proj.update();
+                proj.draw();
+                if (proj.target?.health <= 0) projectiles.splice(i, 1);
+            });
+
+            enemies.forEach((enemy, i) => {
+                if (enemy.update()) {
+                    enemies.splice(i, 1);
+                    enemiesRemaining--;
+                    resources -= enemy.type === 'boss' ? 50 : 20;
+                    updateUI();
+                } else if (enemy.health <= 0) {
+                    enemies.splice(i, 1);
+                    enemiesRemaining--;
+                    score += (enemy.type === 'boss' ? 50 : 10) * wave;
+                    resources += (enemy.type === 'boss' ? 20 : 5) * wave;
+                    updateUI();
+                } else {
+                    enemy.draw();
+                }
+            });
+
+            particles.forEach((p, i) => {
+                p.update();
+                p.draw();
+                if (p.life <= 0) particles.splice(i, 1);
+            });
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        // 交互（支持鼠标和触控）
+        function handleInteraction(x, y, isClick = false) {
+            if (isClick && selectedTower) {
+                const costs = { laser: 100, missile: 150, plasma: 200 };
+                if (resources >= costs[selectedTower]) {
+                    resources -= costs[selectedTower];
+                    towers.push(new Tower(x, y, selectedTower));
+                    selectedTower = null;
+                    document.getElementById('message').textContent = '';
+                    updateUI();
+                }
+            } else if (isClick) {
+                towers.forEach(tower => {
+                    if (Math.hypot(tower.x - x, tower.y - y) < tower.radius) {
+                        tower.upgrade();
+                    }
+                });
+            } else {
+                towers.forEach(tower => {
+                    if (Math.hypot(tower.x - x, tower.y - y) < tower.radius) {
+                        tooltip.style.left = `${x + 10}px`;
+                        tooltip.style.top = `${y + 10}px`;
+                        tooltip.textContent = `等级: ${tower.level} | 升级: ${tower.level * 100}`;
+                        tooltip.style.display = 'block';
+                    } else {
+                        tooltip.style.display = 'none';
+                    }
+                });
+            }
+        }
+
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            handleInteraction(e.clientX - rect.left, e.clientY - rect.top);
+        });
+
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            handleInteraction(e.clientX - rect.left, e.clientY - rect.top, true);
+        });
+
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            const rect = canvas.getBoundingClientRect();
+            const touch = e.touches[0];
+            handleInteraction(touch.clientX - rect.left, touch.clientY - rect.top);
+        });
+
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            const rect = canvas.getBoundingClientRect();
+            const touch = e.touches[0];
+            handleInteraction(touch.clientX - rect.left, touch.clientY - rect.top, true);
+        });
+
+        // 注意：音频文件使用在线示例，实际开发需替换本地资源
+        spawnWave();
+        gameLoop();
+    </script>
+</body>
+</html>
