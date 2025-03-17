@@ -132,6 +132,10 @@
                 padding: 15px;
             }
         }
+        #result {
+            color: #0ff035;
+            font-size: 16px;
+        }
     </style>
 </head>
 <body>
@@ -173,6 +177,9 @@
         <div class="input-group">
             <textarea id="output" placeholder="解密输入/输出框：加密结果或待解密内容" ></textarea>
             <button class="copy-btn" id="copy">复制</button>
+            <button class="copy-btn"><div id="result">字节数：0</div></button>
+            
+            
         </div>
     </div>
 
@@ -183,6 +190,35 @@
 
     
         $(document).ready(function() {
+
+            // 字节数统计
+            $('#output').on('input', function() {
+                // 获取输入的文字
+                let text = $(this).val();
+                
+                // 计算字节大小（考虑 UTF-8 编码）
+                let byteSize = getByteSize(text);
+                
+                // 更新结果显示
+                $('#result').text('字节数：' + byteSize);
+            });
+
+            // 计算字节大小的函数
+            function getByteSize(str) {
+                let totalLength = 0;
+                for (let i = 0; i < str.length; i++) {
+                    let charCode = str.charCodeAt(i);
+                    if (charCode < 0x007f) {
+                        totalLength += 1;  // ASCII字符占1字节
+                    } else if (charCode < 0x07ff) {
+                        totalLength += 2;  // 2字节字符
+                    } else {
+                        totalLength += 3;  // 3字节字符（如中文）
+                    }
+                }
+                return totalLength;
+            }
+
             // CryptoJS自定义加密配置选项
             const options = {
                                 keySize: 256 / 32, // 256位密钥，单位为word (32位)
@@ -283,6 +319,8 @@
                             break;
                     }
                     $input.val('');
+                    let length = getByteSize(output);
+                    $('#result').text('字节数：' + length);
                     $('#output').val(output);
                 } catch(e) {
                     $('#output').val(`加密失败: ${e.message}`);
@@ -308,9 +346,6 @@
                             break;
                         case 'aes':
                             if (!key) throw new Error('请提供密钥');
-                            // const aesBytes = CryptoJS.AES.decrypt(input, key);
-                            // output = aesBytes.toString(CryptoJS.enc.Utf8);
-
                             //改为自定义CryptoJS解密
                             const decoded = CryptoJS.enc.Base64.parse(input);
                             // 分离盐值、IV和密文
@@ -353,6 +388,7 @@
                             output = 'SHA-256是单向哈希算法，无法解密';
                             break;
                     }
+                    $('#result').text('字节数：' + 0);
                     $('#output').val('');
                     $input.val(output);
                 } catch(e) {
@@ -366,6 +402,9 @@
                 const publicKey = crypt.getPublicKey();
                 const privateKey = crypt.getPrivateKey();
                 $input.val(`生成的公钥:\n${publicKey}`);
+                //计算字节
+                let length = getByteSize(privateKey);
+                $('#result').text('字节数：' + length);
                 $('#output').val(`生成的私钥:\n${privateKey}`);
                 $('#method').val('rsa').trigger('change');
                 $('#key').val(publicKey);
@@ -382,6 +421,8 @@
                         keyLength = 8; // DES需要8字节
                         break;
                     case 'aes':
+                        keyLength = 32; // AES可用16、24、32字节，默认24
+                        break;
                     case '3des':
                         keyLength = 32; // AES和3DES默认使用32字节
                         break;
@@ -396,6 +437,8 @@
                 // 生成随机密钥
                 key = CryptoJS.lib.WordArray.random(keyLength).toString(CryptoJS.enc.Hex);
                 $('#key').val(key);
+                let length = getByteSize(key);
+                $('#result').text('字节数：' + length);
                 $('#output').val(`已生成${keyLength}字节随机密钥: ${key}`);
             });
 
