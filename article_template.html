@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文章标题 - 优雅阅读</title>
+    <style>
+        :root {
+            --bg-color: #ffffff;
+            --text-color: #333333;
+            --accent-color: #007bff;
+            --secondary-bg: #f5f5f5;
+        }
+
+        [data-theme="dark"] {
+            --bg-color: #1a1a1a;
+            --text-color: #ffffff;
+            --accent-color: #4dabf7;
+            --secondary-bg: #2d2d2d;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            transition: all 0.3s ease;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            padding: 20px 0;
+            border-bottom: 1px solid rgba(128, 128, 128, 0.2);
+        }
+
+        .title {
+            font-size: 2.5em;
+            margin: 0.5em 0;
+        }
+
+        .meta {
+            color: rgba(128, 128, 128, 0.8);
+            font-size: 0.9em;
+            margin-bottom: 2em;
+        }
+
+        .content {
+            font-size: 1.1em;
+        }
+
+        .content img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            margin: 1em 0;
+        }
+
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            background-color: var(--secondary-bg);
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+            
+            .title {
+                font-size: 2em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <button class="theme-toggle" onclick="toggleTheme()">切换主题</button>
+    <div class="container">
+        <header>
+            <h1 class="title">文章标题</h1>
+            <div class="meta">
+                作者: 张三 | 发布日期: 2025年3月17日 | 阅读时间: 8分钟
+            </div>
+        </header>
+        <main class="content">
+            <p>这是文章的开篇段落。现代文章页面设计注重可读性和美观性，我们将使用适当的间距和字体大小来提升阅读体验。</p>
+            <img src="https://via.placeholder.com/800x400" alt="示例图片">
+            <p>这是第二段内容。支持响应式设计，在不同设备上都能良好显示。深色模式切换功能也很流行，特别是在夜晚阅读时保护眼睛。</p>
+            <h2>小标题</h2>
+            <p>文章可以包含多个段落和小标题，帮助读者更好地理解内容结构。图片会自动适应屏幕宽度，并带有圆角效果。</p>
+        </main>
+    </div>
+
+    <script>
+        function toggleTheme() {
+            const html = document.documentElement;
+            const currentTheme = html.getAttribute('data-theme');
+            if (currentTheme === 'dark') {
+                html.removeAttribute('data-theme');
+                localStorage.setItem('theme', 'light');
+            } else {
+                html.setAttribute('data-theme', 'dark');
+                localStorage.setItem('theme', 'dark');
+            }
+        }
+
+        // 加载时检查用户偏好主题
+        window.onload = () => {
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme === 'dark') {
+                document.documentElement.setAttribute('data-theme', 'dark');
+            }
+        }
+    </script>
+</body>
+</html>
