@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>高级加密解密工具</title>
+    <script src="./js/crypto-js.min.js"></script>
+    <script src="./js/jquery.min.js"></script>
+    <script src="./js/jsencrypt.min.js"></script>
+    <style>
+        :root {
+            --primary: #007bff;
+            --dark: #333;
+            --light: #f0f2f5;
+            --white: #fff;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, Arial, sans-serif;
+            background: var(--light);
+            padding: 20px;
+            min-height: 100vh;
+            transition: background 0.3s;
+        }
+
+        body.dark {
+            background: #1a1a1a;
+            color: #fff;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: var(--white);
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            transition: background 0.3s;
+        }
+
+        body.dark .container {
+            background: #2d2d2d;
+        }
+
+        h1 {
+            text-align: center;
+            color: var(--dark);
+            margin-bottom: 25px;
+        }
+
+        body.dark h1 {
+            color: #fff;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        select, textarea, input, button {
+            width: 100%;
+            padding: 12px;
+            margin: 5px 0;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        body.dark select,
+        body.dark textarea,
+        body.dark input {
+            background: #3d3d3d;
+            border-color: #555;
+            color: #fff;
+        }
+
+        textarea {
+            min-height: 160px;
+            resize: vertical;
+        }
+
+        button {
+            background: var(--primary);
+            color: var(--white);
+            border: none;
+            cursor: pointer;
+            transition: background 0.3s, transform 0.1s;
+        }
+
+        button:hover {
+            background: #0056b3;
+            transform: translateY(-1px);
+        }
+
+        .btn-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+        }
+
+        .theme-toggle, .generate-keys, .generate-random-key {
+            width: auto;
+            padding: 8px 16px;
+            margin-bottom: 20px;
+        }
+
+        .copy-btn {
+            width: auto;
+            padding: 5px 10px;
+            margin-top: 10px;
+        }
+
+        .key-note {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        body.dark .key-note {
+            color: #ccc;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>高级加密解密工具</h1>
+        <button class="theme-toggle" id="theme-toggle">切换主题</button>
+        <button class="generate-keys" id="generate-keys">生成RSA密钥对</button>
+        <button class="generate-random-key" id="generate-random-key">生成随机密钥</button>
+
+        <div class="input-group">
+            <select id="method">
+                <option value="base64">Base64</option>
+                <option value="aes">AES-256-CBC</option>
+                <option value="des">DES</option>
+                <option value="3des">Triple DES (3DES)</option>
+                <option value="rsa">RSA</option>
+                <option value="md5">MD5</option>
+                <option value="sha256">SHA-256</option>
+            </select>
+        </div>
+
+        <div class="input-group" id="key-group" style="display: none;">
+            <input type="text" id="key" value="default_key_32bytes_long1234567890" placeholder="请输入密钥">
+            <div class="key-note" id="key-note">
+                AES/DES/3DES: 建议16/24/32字节; RSA: 请输入公钥或私钥 (PEM格式)
+            </div>
+        </div>
+
+        <div class="input-group">
+            <textarea id="input" placeholder="加密输入框：请输入文本或拖放文件至此"></textarea>
+        </div>
+
+        <div class="btn-group">
+            <button id="encrypt">加密</button>
+            <button id="decrypt">解密</button>
+            <button id="clear">清除</button>
+        </div>
+
+        <div class="input-group">
+            <textarea id="output" placeholder="解密输入/输出框：加密结果或待解密内容" ></textarea>
+            <button class="copy-btn" id="copy">复制</button>
+        </div>
+    </div>
+
+    <!-- <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsencrypt/3.3.2/jsencrypt.min.js"></script> -->
+    <script>
+        $(document).ready(function() {
+            // 主题切换
+            $('#theme-toggle').click(function() {
+                $('body').toggleClass('dark');
+                localStorage.setItem('theme', $('body').hasClass('dark') ? 'dark' : 'light');
+            });
+
+            if (localStorage.getItem('theme') === 'dark') {
+                $('body').addClass('dark');
+            }
+
+            // 方法切换
+            $('#method').change(function() {
+                const method = $(this).val();
+                const $keyGroup = $('#key-group');
+                const $keyNote = $('#key-note');
+                $keyGroup.toggle(['aes', 'des', '3des', 'rsa'].includes(method));
+                if (method === 'rsa') {
+                    $keyNote.text('RSA: 请输入公钥加密，私钥解密 (PEM格式)');
+                } else if (['aes', 'des', '3des'].includes(method)) {
+                    $keyNote.text(`${method.toUpperCase()}: 建议${method === 'des' ? '8' : '16/24/32'}字节`);
+                }
+            });
+
+            // 文件拖放
+            const $input = $('#input');
+            $input.on('dragover', (e) => e.preventDefault())
+                .on('drop', (e) => {
+                    e.preventDefault();
+                    const file = e.originalEvent.dataTransfer.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (e) => $input.val(e.target.result);
+                        reader.readAsText(file);
+                    }
+                });
+
+            // 加密处理
+            $('#encrypt').click(function() {
+                const method = $('#method').val();
+                const input = $input.val().trim();
+                const key = $('#key').val().trim();
+                let output = '';
+
+                if (!input) {
+                    $('#output').val('请输入内容');
+                    return;
+                }
+
+                try {
+                    switch(method) {
+                        case 'base64':
+                            output = btoa(unescape(encodeURIComponent(input)));
+                            break;
+                        case 'aes':
+                            if (!key) throw new Error('请提供密钥');
+                            output = CryptoJS.AES.encrypt(input, key).toString();
+                            break;
+                        case 'des':
+                            if (!key) throw new Error('请提供密钥');
+                            output = CryptoJS.DES.encrypt(input, key).toString();
+                            break;
+                        case '3des':
+                            if (!key) throw new Error('请提供密钥');
+                            output = CryptoJS.TripleDES.encrypt(input, key).toString();
+                            break;
+                        case 'rsa':
+                            if (!key) throw new Error('请提供公钥');
+                            const encrypt = new JSEncrypt();
+                            encrypt.setPublicKey(key);
+                            output = encrypt.encrypt(input);
+                            if (!output) throw new Error('RSA加密失败，请检查公钥');
+                            break;
+                        case 'md5':
+                            output = CryptoJS.MD5(input).toString();
+                            break;
+                        case 'sha256':
+                            output = CryptoJS.SHA256(input).toString();
+                            break;
+                    }
+                    $input.val('');
+                    $('#output').val(output);
+                } catch(e) {
+                    $('#output').val(`加密失败: ${e.message}`);
+                }
+            });
+
+            // 解密处理
+            $('#decrypt').click(function() {
+                const method = $('#method').val();
+                const input = $('#output').val().trim();
+                const key = $('#key').val().trim();
+                let output = '';
+
+                if (!input) {
+                    $('#output').val('请输入待解密内容');
+                    return;
+                }
+
+                try {
+                    switch(method) {
+                        case 'base64':
+                            output = decodeURIComponent(escape(atob(input)));
+                            break;
+                        case 'aes':
+                            if (!key) throw new Error('请提供密钥');
+                            const aesBytes = CryptoJS.AES.decrypt(input, key);
+                            output = aesBytes.toString(CryptoJS.enc.Utf8);
+                            if (!output) throw new Error('解密失败，请检查密钥或输入');
+                            break;
+                        case 'des':
+                            if (!key) throw new Error('请提供密钥');
+                            const desBytes = CryptoJS.DES.decrypt(input, key);
+                            output = desBytes.toString(CryptoJS.enc.Utf8);
+                            if (!output) throw new Error('解密失败，请检查密钥或输入');
+                            break;
+                        case '3des':
+                            if (!key) throw new Error('请提供密钥');
+                            const tripleDesBytes = CryptoJS.TripleDES.decrypt(input, key);
+                            output = tripleDesBytes.toString(CryptoJS.enc.Utf8);
+                            if (!output) throw new Error('解密失败，请检查密钥或输入');
+                            break;
+                        case 'rsa':
+                            if (!key) throw new Error('请提供私钥');
+                            const decrypt = new JSEncrypt();
+                            decrypt.setPrivateKey(key);
+                            output = decrypt.decrypt(input);
+                            if (!output) throw new Error('RSA解密失败，请检查私钥');
+                            break;
+                        case 'md5':
+                            output = 'MD5是单向哈希算法，无法解密';
+                            break;
+                        case 'sha256':
+                            output = 'SHA-256是单向哈希算法，无法解密';
+                            break;
+                    }
+                    $('#output').val('');
+                    $input.val(output);
+                } catch(e) {
+                    $('#output').val(`解密失败: ${e.message}`);
+                }
+            });
+
+            // RSA密钥对生成
+            $('#generate-keys').click(function() {
+                const crypt = new JSEncrypt({ default_key_size: 1024 });
+                const publicKey = crypt.getPublicKey();
+                const privateKey = crypt.getPrivateKey();
+                $input.val(`生成的公钥:\n${publicKey}`);
+                $('#output').val(`生成的私钥:\n${privateKey}`);
+                $('#method').val('rsa').trigger('change');
+                $('#key').val(publicKey);
+            });
+
+            // 随机密钥生成
+            $('#generate-random-key').click(function() {
+                const method = $('#method').val();
+                let keyLength;
+                let key;
+
+                switch(method) {
+                    case 'des':
+                        keyLength = 8; // DES需要8字节
+                        break;
+                    case 'aes':
+                    case '3des':
+                        keyLength = 32; // AES和3DES默认使用32字节
+                        break;
+                    case 'rsa':
+                        $('#output').val('请使用“生成RSA密钥对”按钮生成RSA密钥');
+                        return;
+                    default:
+                        $('#output').val('当前算法无需密钥或不支持随机生成');
+                        return;
+                }
+
+                // 生成随机密钥
+                key = CryptoJS.lib.WordArray.random(keyLength).toString(CryptoJS.enc.Hex);
+                $('#key').val(key);
+                $('#output').val(`已生成${keyLength}字节随机密钥: ${key}`);
+            });
+
+            // 复制
+            $('#copy').click(function() {
+                const output = $('#output');
+                output.select();
+                document.execCommand('copy');
+                $(this).text('已复制').prop('disabled', true);
+                setTimeout(() => $(this).text('复制').prop('disabled', false), 2000);
+            });
+
+            // 清除
+            $('#clear').click(function() {
+                $input.val('');
+                $('#output').val('');
+                $('#key').val('default_key_32bytes_long1234567890');
+            });
+        });
+
+        /**
+         * 以下是基于当前加密解密工具的详细使用说明文档，并包含各种加密算法的原理说明。这份文档旨在帮助用户理解工具功能及其背后的技术原理。
+            高级加密解密工具使用说明文档
+            概述
+            这是一个基于HTML、jQuery和CSS开发的加密解密工具，支持多种加密算法，包括对称加密、非对称加密和哈希算法。工具可在浏览器中运行，支持离线使用（需预加载库），并提供美观、易用的界面，适配手机和电脑。
+            功能特性
+            支持的加密算法：Base64、AES-256-CBC、DES、3DES、RSA、MD5、SHA-256
+            加密解密流程：
+            加密：从输入框取值，加密后清空输入框，结果显示到输出框
+            解密：从输出框取值，解密后清空输出框，结果显示到输入框
+            密钥管理：
+            一键生成随机密钥（AES、DES、3DES）
+            生成RSA公钥私钥对
+            额外功能：
+            文件拖放支持
+            主题切换（浅色/深色）
+            结果复制
+            清空输入输出
+            使用说明
+            界面布局
+            顶部按钮：
+            “切换主题”：切换深色/浅色模式
+            “生成RSA密钥对”：生成RSA公钥和私钥
+            “生成随机密钥”：为AES/DES/3DES生成随机密钥
+            加密方式选择：下拉菜单选择加密算法
+            密钥输入框：针对需要密钥的算法显示，包含默认值和格式提示
+            加密输入框（#input）：输入待加密文本或拖放文件
+            操作按钮：
+            “加密”：执行加密操作
+            “解密”：执行解密操作
+            “清除”：清空所有输入输出
+            解密输入/输出框（#output）：显示加密结果或输入待解密内容，含“复制”按钮
+            操作步骤
+            1. 加密文本
+            在“加密输入框”输入待加密文本，或拖放文本文件。
+            从下拉菜单选择加密算法。
+            对于AES/DES/3DES/RSA：
+            输入密钥，或点击“生成随机密钥”（AES/DES/3DES）/“生成RSA密钥对”（RSA）。
+            RSA需确保密钥框中有公钥。
+            点击“加密”按钮。
+            “加密输入框”清空，加密结果显示在“解密输入/输出框”。
+            2. 解密文本
+            在“解密输入/输出框”输入待解密内容（通常是上一步加密结果）。
+            确保选择了正确的加密算法。
+            对于AES/DES/3DES/RSA：
+            输入对应密钥（与加密时相同），RSA需使用私钥。
+            点击“解密”按钮。
+            “解密输入/输出框”清空，解密结果显示在“加密输入框”。
+            3. 生成密钥
+            随机密钥（AES/DES/3DES）：
+            选择算法（AES/DES/3DES）。
+            点击“生成随机密钥”。
+            密钥框显示新生成的密钥，输出框显示提示。
+            RSA密钥对：
+            点击“生成RSA密钥对”。
+            输入框显示公钥，输出框显示私钥，密钥框默认填入公钥。
+            4. 其他操作
+            复制结果：点击“复制”按钮复制输出框内容。
+            清除：点击“清除”重置所有输入输出。
+            主题切换：点击“切换主题”更改界面风格。
+            加密算法原理
+            1. Base64
+            类型：编码（非加密）
+            原理：
+            将二进制数据转换为ASCII字符表示，每3字节（24位）分为4个6位组，每组映射为64个字符（A-Z、a-z、0-9、+/）。
+            不足3字节时用=填充。
+            用途：数据传输编码，不提供保密性。
+            特点：可逆，编码后数据量增加约33%。
+            2. AES-256-CBC (Advanced Encryption Standard)
+            类型：对称加密
+            原理：
+            使用256位密钥（32字节），分组长度128位。
+            CBC（Cipher Block Chaining）模式：每块明文与前一块密文异或后加密，首块使用随机IV（初始向量，包含在输出中）。
+            加密过程包括轮函数（SubBytes、ShiftRows、MixColumns、AddRoundKey），共14轮。
+            用途：文件加密、网络通信。
+            特点：安全性高，需密钥一致，IV确保相同明文加密结果不同。
+            3. DES (Data Encryption Standard)
+            类型：对称加密
+            原理：
+            使用56位密钥（实际输入8字节，含校验位），分组长度64位。
+            采用Feistel网络结构，16轮加密，每轮包括扩展、置换、S盒替换和P盒置换。
+            用途：早期标准加密，现安全性较低。
+            特点：密钥短，易被暴力破解，已不推荐。
+            4. Triple DES (3DES)
+            类型：对称加密
+            原理：
+            对DES改进，应用三次DES加密（加密-解密-加密），有效密钥长度168位（实际输入24字节）。
+            可使用1-3个不同密钥，增强安全性。
+            用途：过渡性加密方案。
+            特点：比DES安全，但较慢，仍可能被现代攻击破解。
+            5. RSA (Rivest-Shamir-Adleman)
+            类型：非对称加密
+            原理：
+            基于大整数因子分解难题。
+            生成公钥（n, e）和私钥（n, d），n为两个大质数p和q的乘积。
+            加密：c = m^e mod n（m为明文）；解密：m = c^d mod n。
+            用途：密钥交换、数字签名。
+            特点：
+            公钥加密私钥解密（或反之），安全性依赖大数分解难度。
+            速度慢，适合小数据量。
+            6. MD5 (Message Digest Algorithm 5)
+            类型：单向哈希
+            原理：
+            输入任意长度数据，输出128位（16字节）固定长度哈希值。
+            使用4轮64步操作，包括位运算和非线性函数。
+            用途：数据完整性校验。
+            特点：不可逆，易发生碰撞（相同哈希不同输入），不用于安全加密。
+            7. SHA-256 (Secure Hash Algorithm 256-bit)
+            类型：单向哈希
+            原理：
+            输入数据分512位块，输出256位（32字节）哈希值。
+            64轮操作，使用逻辑函数、模加和常量表。
+            用途：数字签名、区块链。
+            特点：比MD5安全，抗碰撞性强，不可逆。
+            注意事项
+            密钥安全：
+            AES/DES/3DES需保存密钥，丢失无法解密。
+            RSA公钥私钥需分别用于加密和解密。
+            算法选择：
+            MD5/SHA-256仅用于校验，无法解密。
+            DES安全性低，仅限学习用途。
+            性能：
+            RSA适合小数据，处理大文件建议用对称加密。
+            离线使用：
+            保存HTML文件及CDN库（jQuery、CryptoJS、JSEncrypt）到本地。
+            示例操作
+            加密解密流程
+            输入“hello”，选择AES，点击“生成随机密钥”。
+            点击“加密”，输出框显示加密结果，输入框清空。
+            点击“解密”，输入框显示“hello”，输出框清空。
+            RSA密钥使用
+            点击“生成RSA密钥对”，复制私钥备用。
+            输入“test”，密钥框保留公钥，点击“加密”。
+            输出框显示密文，替换密钥框为私钥，点击“解密”，输入框显示“test”。
+            技术支持
+            依赖库：
+            jQuery 3.6.0
+            CryptoJS 4.1.1（AES/DES/3DES/MD5/SHA-256）
+            JSEncrypt 3.3.2（RSA）
+            问题反馈：如遇bug，请记录算法、输入和错误信息。
+            这份文档详细说明了工具的使用方法和每种算法的原理，适合新手和有一定技术背景的用户参考。
+         * 
+         * 
+         * */
+
+    </script>
+</body>
+</html>
