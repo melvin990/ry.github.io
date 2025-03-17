@@ -180,7 +180,16 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jsencrypt/3.3.2/jsencrypt.min.js"></script> -->
     <script>
+
+    
         $(document).ready(function() {
+            // CryptoJS自定义加密配置选项
+            const options = {
+                                keySize: 256 / 32, // 256位密钥，单位为word (32位)
+                                hasher: CryptoJS.algo.SHA256, // 使用SHA-256代替默认的SHA-1
+                                iterations: 100000 // 设置自定义迭代次数，例如10000
+                            };
+
             // 主题切换
             $('#theme-toggle').click(function() {
                 $('body').toggleClass('dark');
@@ -216,12 +225,13 @@
                         reader.readAsText(file);
                     }
                 });
-
+            
             // 加密处理
             $('#encrypt').click(function() {
                 const method = $('#method').val();
                 const input = $input.val().trim();
                 const key = $('#key').val().trim();
+                // console.log('key:', key);
                 let output = '';
 
                 if (!input) {
@@ -236,7 +246,19 @@
                             break;
                         case 'aes':
                             if (!key) throw new Error('请提供密钥');
-                            output = CryptoJS.AES.encrypt(input, key).toString();
+                            // output = CryptoJS.AES.encrypt(input, key).toString();
+                            //改为自定义加密
+                            const salt = CryptoJS.lib.WordArray.random(8);
+                            const iv = CryptoJS.lib.WordArray.random(16);
+                            const newKey = CryptoJS.PBKDF2(key, salt, options);
+                            const encrypted = CryptoJS.AES.encrypt(input, newKey, {
+                                iv: iv, // 随机IV，16字节
+                                mode: CryptoJS.mode.CBC, // 默认CBC模式
+                                padding: CryptoJS.pad.Pkcs7 // 默认填充方式
+                            });
+                            // 将盐值、IV和密文拼接
+                            const combined = salt.concat(iv).concat(encrypted.ciphertext);
+                            output = CryptoJS.enc.Base64.stringify(combined);
                             break;
                         case 'des':
                             if (!key) throw new Error('请提供密钥');
@@ -273,12 +295,12 @@
                 const input = $('#output').val().trim();
                 const key = $('#key').val().trim();
                 let output = '';
-
+                
                 if (!input) {
                     $('#output').val('请输入待解密内容');
                     return;
                 }
-
+               
                 try {
                     switch(method) {
                         case 'base64':
@@ -286,8 +308,23 @@
                             break;
                         case 'aes':
                             if (!key) throw new Error('请提供密钥');
-                            const aesBytes = CryptoJS.AES.decrypt(input, key);
-                            output = aesBytes.toString(CryptoJS.enc.Utf8);
+                            // const aesBytes = CryptoJS.AES.decrypt(input, key);
+                            // output = aesBytes.toString(CryptoJS.enc.Utf8);
+
+                            //改为自定义CryptoJS解密
+                            const decoded = CryptoJS.enc.Base64.parse(input);
+                            // 分离盐值、IV和密文
+                            const salt = CryptoJS.lib.WordArray.create(decoded.words.slice(0, 2)); // 前8字节
+                            const iv = CryptoJS.lib.WordArray.create(decoded.words.slice(2, 6)); // 接下来16字节
+                            const ciphertext = CryptoJS.lib.WordArray.create(decoded.words.slice(6)); // 剩余部分
+                            const newKey = CryptoJS.PBKDF2(key, salt, options);
+                            const decrypted = CryptoJS.AES.decrypt(
+                                { ciphertext: ciphertext },
+                                newKey,
+                                { iv: iv, mode: CryptoJS.mode.CBC, padding: CryptoJS.pad.Pkcs7 }
+                            );
+                            output = decrypted.toString(CryptoJS.enc.Utf8);
+                            // console.log('output+options:', output + options);
                             if (!output) throw new Error('解密失败，请检查密钥或输入');
                             break;
                         case 'des':
