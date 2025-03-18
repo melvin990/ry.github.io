@@ -200,7 +200,8 @@
         </div>
         <div class="form-group">
             <label for="plaintext">待加密文本</label>
-            <input type="text" id="plaintext" placeholder="要加密的文本">
+            <!-- <input type="text" id="plaintext" placeholder="要加密的文本"> -->
+            <textarea id="plaintext" placeholder="要加密的文本"></textarea>
         </div>
         <div class="button-group">
             <button id="encryptBtn">加密</button>
@@ -391,6 +392,8 @@
                 }
             };
 
+            // 加密解密功能----------------------------------------------------------
+           
             // 加密函数（工具部分）
             async function encrypt() {
                 if (!isLoggedIn) {
@@ -410,7 +413,9 @@
                 try {
                     const saltHex = Array.from(saltString).reduce((hex, c) => hex + c.charCodeAt(0).toString(16).padStart(2, '0'), '');
                     const salt = new Uint8Array(saltHex.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
+                    // console.log('盐值:', salt);
                     const key = await deriveKey(password, salt);
+                    // console.log('派生密钥:', key);
                     const iv = crypto.getRandomValues(new Uint8Array(12));
                     const encoded = new TextEncoder().encode(plaintext);
 

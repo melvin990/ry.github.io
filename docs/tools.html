@@ -48,7 +48,7 @@
         .calc-buttons { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; max-width: 300px; }
         .calc-buttons button { padding: 15px; font-size: 1.2em; }
 
-        /* 计时器 */
+        /* 倒计时 */
         #timerDisplay { font-size: 2em; font-family: monospace; margin: 10px 0; }
 
         /* 日历 */
@@ -133,11 +133,19 @@
         </div>
 
         <div id="timer" class="tool" role="region" aria-label="计时器">
-            <div id="timerDisplay" aria-live="polite">00:00:00</div>
+            <!-- <div id="timerDisplay" aria-live="polite">00:00:000</div>
             <button id="startTimer">开始</button>
             <button id="stopTimer">暂停</button>
-            <button id="resetTimer">重置</button>
+            <button id="resetTimer">重置</button> -->
+            <div id="timerDisplay">00:00:000</div>
+            <div class="controls">
+                <input type="number" id="minutes" placeholder="分钟" min="0">
+                <button id="start">开始</button>
+                <button id="stop">停止</button>
+                <button id="reset">重置</button>
+            </div>
         </div>
+        <audio id="alarm" src="https://www.soundjay.com/buttons/beep-01a.mp3"></audio>
 
         <div id="converter" class="tool" role="region" aria-label="单位转换">
             <input type="number" id="convertValue" placeholder="输入数值" min="0" aria-label="输入数值">
@@ -310,24 +318,81 @@
         });
 
         // 4. 计时器（显示时分秒）
-        let time = 0, timer;
-        function updateTimerDisplay() {
-            const hours = Math.floor(time / 3600).toString().padStart(2, '0');
-            const minutes = Math.floor((time % 3600) / 60).toString().padStart(2, '0');
-            const seconds = (time % 60).toString().padStart(2, '0');
-            $('#timerDisplay').text(`${hours}:${minutes}:${seconds}`);
+        // let time = 0, timer;
+        //修改计时器（显示时分秒毫秒）
+        let timerInterval;
+        let totalMs = 0;
+        let isRunning = false;
+
+        function formatTime(ms) {
+            let minutes = Math.floor(ms / 60000);
+            let seconds = Math.floor((ms % 60000) / 1000);
+            let milliseconds = ms % 1000;
+            
+            return `${minutes.toString().padStart(2, '0')}:${
+                seconds.toString().padStart(2, '0')}:${
+                milliseconds.toString().padStart(3, '0')}`;
         }
-        $('#startTimer').click(function() {
-            if (!timer) {
-                timer = setInterval(() => {
-                    time++;
-                    updateTimerDisplay();
-                }, 1000);
+
+        // function updateTimerDisplay() {
+        //     const hours = Math.floor(time / 3600).toString().padStart(2, '0');
+        //     const minutes = Math.floor((time % 3600) / 60).toString().padStart(2, '0');
+        //     const seconds = (time % 60).toString().padStart(2, '0');
+        //     $('#timerDisplay').text(`${hours}:${minutes}:${seconds}`);
+        // }
+        function updateTimer() {
+            if (totalMs <= 0) {
+                clearInterval(timerInterval);
+                isRunning = false;
+                $('#timerDisplay').css('color', 'red');
+                $('#alarm')[0].play();
+                return;
+            }
+            totalMs -= 10;
+            $('#timerDisplay').text(formatTime(totalMs));
+        }
+        $('#start').click(function() {
+            if (!isRunning) {
+                let minutes = parseInt($('#minutes').val()) || 0;
+                if (totalMs === 0) {
+                    totalMs = minutes * 60000;
+                }
+                if (totalMs > 0) {
+                    isRunning = true;
+                    $('#timerDisplay').css('color', '#333');
+                    timerInterval = setInterval(updateTimer, 10);
+                }
             }
         });
-        $('#stopTimer').click(() => clearInterval(timer) && (timer = null));
-        $('#resetTimer').click(() => { clearInterval(timer); timer = null; time = 0; updateTimerDisplay(); });
-        updateTimerDisplay();
+        $('#stop').click(function() {
+            if (isRunning) {
+                clearInterval(timerInterval);
+                isRunning = false;
+            }
+        });
+
+        $('#reset').click(function() {
+            clearInterval(timerInterval);
+            isRunning = false;
+            totalMs = 0;
+            $('#timerDisplay').text('00:00:000');
+            $('#timerDisplay').css('color', '#333');
+            $('#minutes').val('');
+            $('#alarm')[0].pause();
+            $('#alarm')[0].currentTime = 0;
+        });
+
+        // $('#startTimer').click(function() {
+        //     if (!timer) {
+        //         timer = setInterval(() => {
+        //             time++;
+        //             updateTimerDisplay();
+        //         }, 1000);
+        //     }
+        // });
+        // $('#stopTimer').click(() => clearInterval(timer) && (timer = null));
+        // $('#resetTimer').click(() => { clearInterval(timer); timer = null; time = 0; updateTimerDisplay(); });
+        // updateTimerDisplay();
 
         // 5. 单位转换（美国和欧洲单位）
         $('#convert').click(function() {
