@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <meta name="description" content="Utils">
-    <title>My Tools</title>
+    <title>Tools</title>
     <script src="../js/crypto-js.min.js"></script>
     <style>
         :root {
@@ -413,7 +413,7 @@
                 try {
                     const saltHex = Array.from(saltString).reduce((hex, c) => hex + c.charCodeAt(0).toString(16).padStart(2, '0'), '');
                     const salt = new Uint8Array(saltHex.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
-                    // console.log('盐值:', salt);
+                    console.log('盐值:', salt);
                     const key = await deriveKey(password, salt);
                     // console.log('派生密钥:', key);
                     const iv = crypto.getRandomValues(new Uint8Array(12));
