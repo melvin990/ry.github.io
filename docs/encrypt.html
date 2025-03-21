@@ -147,7 +147,7 @@
     <div class="container">
         <h1>加密解密工具</h1>
         <button class="theme-toggle" id="theme-toggle">切换主题</button>
-        <button class="generate-keys" id="generate-keys">生成RSA密钥对</button>
+        <!-- <button class="generate-keys" id="generate-keys" >生成RSA密钥对</button> -->
         <button class="generate-random-key" id="generate-random-key">生成随机密钥</button>
         <button class="copy-key-btn" onclick="copyText()">复制密钥</button>
 
@@ -211,7 +211,7 @@
             document.execCommand('copy'); // 或者使用 navigator.clipboard
             $('#output').val(`已复制密钥: ${hiddenInput.value}`);
             //1秒后删除复制密钥提示
-            setTimeout(() => $('#output').val(''), 1000);
+            setTimeout(() => $('#output').val(''), 3000);
         }
 
         // CryptoJS自定义加密配置选项AES-256-CBC专用
@@ -284,6 +284,8 @@
             }
             return bytes;
         }
+
+        
         $(document).ready(function() {
             // 字节数统计
             $('#output').on('input', function() {
@@ -319,15 +321,18 @@
             if (localStorage.getItem('theme') === 'dark') {
                 $('body').addClass('dark');
             }
+            
 
             // 方法切换
             $('#method').change(function() {
+                // $input.val('');
                 const method = $(this).val();
                 const $keyGroup = $('#key-group');
                 const $keyNote = $('#key-note');
                 $keyGroup.toggle(['aes','aesgcm', 'des', '3des', 'rsa'].includes(method));
                 if (method === 'rsa') {
                     $keyNote.text('RSA: 请输入公钥加密，私钥解密 (PEM格式)');
+                    generateRSAKey(false);
                 } else if (['aes', 'aesgcm','des', '3des'].includes(method)) {
                     $keyNote.text(`${method.toUpperCase()}: 建议${method === 'des' ? '8' : '16/24/32'}字节`);
                 }
@@ -499,6 +504,10 @@
 
             // RSA密钥对生成
             $('#generate-keys').click(function() {
+                generateRSAKey(true);
+            });
+            // RSA密钥对生成
+            function generateRSAKey(status){
                 const crypt = new JSEncrypt({ default_key_size: 1024 });
                 const publicKey = crypt.getPublicKey();
                 const privateKey = crypt.getPrivateKey();
@@ -507,16 +516,21 @@
                 let length = getByteSize(privateKey);
                 $('#result').text('字节数：' + length);
                 $('#output').val(`生成的私钥:\n${privateKey}`);
-                $('#method').val('rsa').trigger('change');
+                if(status){
+                    $('#method').val('rsa').trigger('change');
+                }
                 $('#key').val(publicKey);
-            });
+            }
 
             // 随机密钥生成
             $('#generate-random-key').click(function() {
+                // 初始化，清空输入框
+                $input.val(``);
                 const method = $('#method').val();
                 let keyLength;
                 let key;
                 let isActive = false;
+                let methodName='';
                 switch(method) {
                     case 'des':
                         keyLength = 8; // DES需要8字节
@@ -532,24 +546,31 @@
                         keyLength = 32; // AES和3DES默认使用32字节
                         break;
                     case 'rsa':
-                        $('#output').val('请使用“生成RSA密钥对”按钮生成RSA密钥');
-                        return;
+                        methodName='rsa';
+                        // $('#output').val('请使用“生成RSA密钥对”按钮生成RSA密钥');
+                        // return;
+                        break;
                     default:
                         $('#output').val('当前算法无需密钥或不支持随机生成');
                         return;
                 }
-
-                // 生成随机密钥
-                key = CryptoJS.lib.WordArray.random(keyLength).toString(CryptoJS.enc.Hex);
-                if(isActive){
-                    //调用aes-gcm生成密钥方法
-                    key = generateRandomKey();
-                    console.log('AES-GCM key:', key);
+                if(methodName==='rsa'){
+                    //生成RSA密钥对
+                    generateRSAKey(true);
+                }else{
+                    // 生成des,aes,aesgcm,3des随机密钥
+                    key = CryptoJS.lib.WordArray.random(keyLength).toString(CryptoJS.enc.Hex);
+                    if(isActive){
+                        //调用aes-gcm生成密钥方法
+                        key = generateRandomKey();
+                        console.log('AES-GCM key:', key);
+                    }
+                    $('#key').val(key);
+                    let length = getByteSize(key);
+                    $('#result').text('字节数：' + length);
+                    $('#output').val(`已生成${keyLength}字节随机密钥: ${key}`);
                 }
-                $('#key').val(key);
-                let length = getByteSize(key);
-                $('#result').text('字节数：' + length);
-                $('#output').val(`已生成${keyLength}字节随机密钥: ${key}`);
+                
             });
 
             // 复制
