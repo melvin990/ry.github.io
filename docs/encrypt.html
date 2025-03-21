@@ -503,9 +503,9 @@
             });
 
             // RSA密钥对生成
-            $('#generate-keys').click(function() {
-                generateRSAKey(true);
-            });
+            // $('#generate-keys').click(function() {
+            //     generateRSAKey(true);
+            // });
             // RSA密钥对生成
             function generateRSAKey(status){
                 const crypt = new JSEncrypt({ default_key_size: 1024 });
@@ -516,10 +516,10 @@
                 let length = getByteSize(privateKey);
                 $('#result').text('字节数：' + length);
                 $('#output').val(`生成的私钥:\n${privateKey}`);
-                if(status){
+                if(status===true){
                     $('#method').val('rsa').trigger('change');
                 }
-                $('#key').val(publicKey);
+                $('#key').val(privateKey);
             }
 
             // 随机密钥生成
