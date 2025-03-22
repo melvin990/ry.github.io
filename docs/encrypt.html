@@ -214,7 +214,7 @@
             setTimeout(() => $('#output').val(''), 3000);
         }
 
-        // CryptoJS自定义加密配置选项AES-256-CBC专用
+        // CryptoJS自定义加密配置选项,AES-256-CBC专用
         const options = {
             keySize: 256 / 32, // 256位密钥，单位为word (32位)
             hasher: CryptoJS.algo.SHA256, // 使用SHA-256代替默认的SHA-1
@@ -570,7 +570,8 @@
                     $('#result').text('字节数：' + length);
                     $('#output').val(`已生成${keyLength}字节随机密钥: ${key}`);
                 }
-                
+                //3秒后删除复制密钥提示
+                setTimeout(() => $('#output').val(''), 3000);
             });
 
             // 复制
