@@ -563,7 +563,7 @@
                     if(isActive){
                         //调用aes-gcm生成密钥方法
                         key = generateRandomKey();
-                        console.log('AES-GCM key:', key);
+                        // console.log('AES-GCM key:', key);
                     }
                     $('#key').val(key);
                     let length = getByteSize(key);
@@ -580,7 +580,7 @@
                 output.select();
                 document.execCommand('copy');
                 $(this).text('已复制').prop('disabled', true);
-                setTimeout(() => $(this).text('复制').prop('disabled', false), 2000);
+                setTimeout(() => $(this).text('复制').prop('disabled', false), 3000);
             });
 
             // 清除
