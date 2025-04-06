@@ -239,21 +239,12 @@
             const chunkSize = 32768; // 每次处理32KB
             const uint8Array = new Uint8Array(buffer);
             let binary = '';
-            
-            // 将整个缓冲区转为二进制字符串
-            for (let i = 0; i < uint8Array.length; i++) {
-                binary += String.fromCharCode(uint8Array[i]);
+            for (let i = 0; i < uint8Array.length; i += chunkSize) {
+                const chunk = uint8Array.subarray(i, Math.min(i + chunkSize, uint8Array.length));
+                binary += String.fromCharCode.apply(null, chunk);
             }
             
-            // 分块处理 btoa，避免栈溢出
-            const base64Chunks = [];
-            const btoaChunkSize = 1024 * 1024; // 1MB 分块进行 btoa
-            for (let i = 0; i < binary.length; i += btoaChunkSize) {
-                const chunk = binary.slice(i, Math.min(i + btoaChunkSize, binary.length));
-                base64Chunks.push(btoa(chunk));
-            }
-            
-            return base64Chunks.join('');
+            return btoa(binary);
         }
 
         /**
@@ -263,6 +254,10 @@
          */
         function base64ToArrayBuffer(base64) {
             try {
+                // 检查是否为有效的 Base64 字符串
+                if (!/^[A-Za-z0-9+/=]+$/.test(base64) || base64.length % 4 !== 0) {
+                    throw new Error("输入不是有效的 Base64 字符串");
+                }
                 const binary = atob(base64);
                 const bytes = new Uint8Array(binary.length);
                 for (let i = 0; i < binary.length; i++) {
@@ -417,9 +412,15 @@
                         if (!output) throw new Error('解密失败，请检查密钥或输入');
                     } else if (method === 'aesgcm') {
                         const data = base64ToArrayBuffer(input);
+                        if (data.length < 28) { // salt (16) + iv (12)
+                            throw new Error("输入数据太短，无法提取 salt 和 IV");
+                        }
                         const salt = data.slice(0, 16);
                         const iv = data.slice(16, 28);
                         const encryptedData = data.slice(28);
+                        if (encryptedData.length === 0) {
+                            throw new Error("没有可解密的加密数据");
+                        }
                         const keyGcm = await deriveKey(key, salt);
                         const decrypted = await window.crypto.subtle.decrypt(
                             { name: "AES-GCM", iv },
