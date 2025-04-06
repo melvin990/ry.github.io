@@ -200,7 +200,7 @@
         const cbcOptions = {
             keySize: 256 / 32, // 256位密钥
             hasher: CryptoJS.algo.SHA256,
-            iterations: 100000
+            iterations: 1000000 //原来是100000，为了安全改为1000000
         };
 
         // 密钥缓存
