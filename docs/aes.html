@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>加密解密工具</title>
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script> -->
+    <script src="../js/crypto-js.min.js"></script>
+    <script src="../js/jquery.min.js"></script>
+    <style>
+        /* 样式保持不变，略 */
+        :root {
+            --primary: #007bff;
+            --dark: #333;
+            --light: #f0f2f5;
+            --white: #fff;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, Arial, sans-serif;
+            background: var(--light);
+            padding: 20px;
+            min-height: 100vh;
+            transition: background 0.3s;
+        }
+
+        body.dark {
+            background: #1a1a1a;
+            color: #fff;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: var(--white);
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            transition: background 0.3s;
+        }
+
+        body.dark .container {
+            background: #2d2d2d;
+        }
+
+        h1 {
+            text-align: center;
+            color: var(--dark);
+            margin-bottom: 25px;
+        }
+
+        body.dark h1 {
+            color: #fff;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        select, textarea, input, button {
+            width: 100%;
+            padding: 12px;
+            margin: 5px 0;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        body.dark select,
+        body.dark textarea,
+        body.dark input {
+            background: #3d3d3d;
+            border-color: #555;
+            color: #fff;
+        }
+
+        textarea {
+            min-height: 160px;
+            resize: vertical;
+        }
+
+        button {
+            background: var(--primary);
+            color: var(--white);
+            border: none;
+            cursor: pointer;
+            transition: background 0.3s, transform 0.1s;
+        }
+
+        button:hover {
+            background: #0056b3;
+            transform: translateY(-1px);
+        }
+
+        .btn-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+        }
+
+        .theme-toggle, .generate-keys, .generate-random-key ,.copy-key-btn {
+            width: auto;
+            padding: 8px 16px;
+            margin-bottom: 20px;
+        }
+
+        .copy-btn {
+            width: auto;
+            padding: 5px 10px;
+            margin-top: 10px;
+        }
+
+        .key-note {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        body.dark .key-note {
+            color: #ccc;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 15px;
+            }
+        }
+        #result {
+            color: #0ff035;
+            font-size: 16px;
+        }
+        #key {
+            position: absolute;
+            opacity: 0; /* 隐藏但可复制 */
+            pointer-events: none; /* 防止交互 */
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>加密解密工具</h1>
+        <button class="theme-toggle" id="theme-toggle">切换主题</button>
+        <button class="generate-random-key" id="generate-random-key">生成随机密钥</button>
+        <button class="copy-key-btn" onclick="copyText()">复制密钥</button>
+
+        <div class="input-group">
+            <select id="method">
+                <option value="aesgcm">AES-256-GCM (推荐)</option>
+                <option value="aes">AES-256-CBC</option>
+            </select>
+        </div>
+
+        <div class="input-group" id="key-group">
+            <input type="text" id="key" value="2m395k3n746m1h6l6m5j756t6p394d7o7c1f3f6s406p7r152i3g0d5r6b1h0v1a" placeholder="请输入密钥">
+            <input type="password" id="visibleKey" value="2m395k3n746m1h6l6m5j756t6p394d7o7c1f3f6s406p7r152i3g0d5r6b1h0v1a" placeholder="请输入密钥">
+            <div class="key-note" id="key-note">建议32字节密钥</div>
+        </div>
+
+        <div class="input-group">
+            <textarea id="input" placeholder="加密输入框：请输入文本或拖放文件至此"></textarea>
+        </div>
+
+        <div class="btn-group">
+            <button id="encrypt">加密</button>
+            <button id="decrypt">解密</button>
+            <button id="clear">清除</button>
+        </div>
+
+        <div class="input-group">
+            <textarea id="output" placeholder="解密输入/输出框：加密结果或待解密内容"></textarea>
+            <button class="copy-btn" id="copy">复制</button>
+            <button class="copy-btn"><div id="result">字节数：0</div></button>
+        </div>
+    </div>
+
+    <script>
+        // 同步密钥输入框
+        const visibleInput = document.getElementById('visibleKey');
+        const hiddenInput = document.getElementById('key');
+        visibleInput.addEventListener('input', (e) => hiddenInput.value = e.target.value);
+
+        // 复制密钥
+        function copyText() {
+            hiddenInput.select();
+            document.execCommand('copy');
+            $('#output').val(`已复制密钥: ${hiddenInput.value}`);
+            setTimeout(() => $('#output').val(''), 3000);
+        }
+
+        // CBC加密配置
+        const cbcOptions = {
+            keySize: 256 / 32, // 256位密钥
+            hasher: CryptoJS.algo.SHA256,
+            iterations: 100000
+        };
+
+        // 密钥缓存
+        let cachedKey = null;
+        let cachedKeySalt = null;
+
+        /**
+         * 派生AES-GCM密钥，使用PBKDF2
+         * @param {string} keyStr - 用户输入的密钥字符串
+         * @param {Uint8Array} salt - 盐值
+         * @returns {Promise<CryptoKey>} - 派生的加密密钥
+         */
+        async function deriveKey(keyStr, salt) {
+            if (cachedKey && cachedKeySalt === salt) return cachedKey;
+            const encoder = new TextEncoder();
+            const keyMaterial = await window.crypto.subtle.importKey(
+                "raw", encoder.encode(keyStr), { name: "PBKDF2" }, false, ["deriveBits", "deriveKey"]
+            );
+            cachedKey = await window.crypto.subtle.deriveKey(
+                { name: "PBKDF2", salt, iterations: 1000000, hash: "SHA-256" },
+                keyMaterial,
+                { name: "AES-GCM", length: 256 },
+                false,
+                ["encrypt", "decrypt"]
+            );
+            cachedKeySalt = salt;
+            return cachedKey;
+        }
+
+        /**
+         * 将ArrayBuffer转为Base64字符串，支持大数据
+         * @param {ArrayBuffer} buffer - 输入缓冲区
+         * @returns {string} - Base64编码字符串
+         */
+        function arrayBufferToBase64(buffer) {
+            const chunkSize = 32768; // 每次处理32KB
+            const uint8Array = new Uint8Array(buffer);
+            let binary = '';
+            
+            // 将整个缓冲区转为二进制字符串
+            for (let i = 0; i < uint8Array.length; i++) {
+                binary += String.fromCharCode(uint8Array[i]);
+            }
+            
+            // 分块处理 btoa，避免栈溢出
+            const base64Chunks = [];
+            const btoaChunkSize = 1024 * 1024; // 1MB 分块进行 btoa
+            for (let i = 0; i < binary.length; i += btoaChunkSize) {
+                const chunk = binary.slice(i, Math.min(i + btoaChunkSize, binary.length));
+                base64Chunks.push(btoa(chunk));
+            }
+            
+            return base64Chunks.join('');
+        }
+
+        /**
+         * 将Base64字符串转为ArrayBuffer
+         * @param {string} base64 - Base64字符串
+         * @returns {Uint8Array} - 解码后的字节数组
+         */
+        function base64ToArrayBuffer(base64) {
+            try {
+                const binary = atob(base64);
+                const bytes = new Uint8Array(binary.length);
+                for (let i = 0; i < binary.length; i++) {
+                    bytes[i] = binary.charCodeAt(i);
+                }
+                return bytes;
+            } catch (e) {
+                throw new Error(`Base64 解码失败: ${e.message}`);
+            }
+        }
+
+        /**
+         * 分块加密大数据（AES-GCM）
+         * @param {string} data - 输入数据
+         * @param {CryptoKey} key - 加密密钥
+         * @param {Uint8Array} iv - 初始化向量
+         * @param {number} chunkSize - 分块大小（默认1MB）
+         * @returns {Promise<Uint8Array>} - 加密后的字节数组
+         */
+        async function encryptLargeData(data, key, iv, chunkSize = 1024 * 1024) {
+            const encoder = new TextEncoder();
+            const totalLength = data.length;
+            const encryptedChunks = [];
+            let totalEncryptedLength = 0;
+
+            try {
+                for (let i = 0; i < totalLength; i += chunkSize) {
+                    const chunk = data.slice(i, Math.min(i + chunkSize, totalLength));
+                    const encodedChunk = encoder.encode(chunk);
+                    const encryptedChunk = await window.crypto.subtle.encrypt(
+                        { name: "AES-GCM", iv },
+                        key,
+                        encodedChunk
+                    );
+                    encryptedChunks.push(new Uint8Array(encryptedChunk));
+                    totalEncryptedLength += encryptedChunk.byteLength;
+                }
+
+                const encryptedResult = new Uint8Array(totalEncryptedLength);
+                let offset = 0;
+                for (const chunk of encryptedChunks) {
+                    encryptedResult.set(chunk, offset);
+                    offset += chunk.byteLength;
+                }
+                return encryptedResult;
+            } catch (e) {
+                throw new Error(`分块加密失败: ${e.message}`);
+            }
+        }
+
+        $(document).ready(function() {
+            // 字节数更新
+            $('#output').on('input', function() {
+                const byteSize = new TextEncoder().encode($(this).val()).length;
+                $('#result').text('字节数：' + byteSize);
+            });
+
+            // 主题切换
+            $('#theme-toggle').click(function() {
+                $('body').toggleClass('dark');
+                localStorage.setItem('theme', $('body').hasClass('dark') ? 'dark' : 'light');
+            });
+            if (localStorage.getItem('theme') === 'dark') $('body').addClass('dark');
+
+            // 文件拖放
+            const $input = $('#input');
+            $input.on('dragover', (e) => e.preventDefault())
+                .on('drop', (e) => {
+                    e.preventDefault();
+                    const file = e.originalEvent.dataTransfer.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (e) => $input.val(e.target.result);
+                        reader.readAsText(file);
+                    }
+                });
+
+            // 加密处理
+            $('#encrypt').click(async function() {
+                const method = $('#method').val();
+                const input = $input.val().trim();
+                const key = $('#key').val().trim();
+                if (!input) return $('#output').val('请输入内容');
+                if (!key) return $('#output').val('请提供密钥');
+
+                try {
+                    let output = '';
+                    if (method === 'aes') {
+                        const salt = CryptoJS.lib.WordArray.random(8);
+                        const iv = CryptoJS.lib.WordArray.random(16);
+                        const newKey = CryptoJS.PBKDF2(key, salt, cbcOptions);
+                        const encrypted = CryptoJS.AES.encrypt(input, newKey, {
+                            iv: iv, mode: CryptoJS.mode.CBC, padding: CryptoJS.pad.Pkcs7
+                        });
+                        const combined = salt.concat(iv).concat(encrypted.ciphertext);
+                        output = CryptoJS.enc.Base64.stringify(combined);
+                    } else if (method === 'aesgcm') {
+                        const iv = window.crypto.getRandomValues(new Uint8Array(12));
+                        const salt = window.crypto.getRandomValues(new Uint8Array(16));
+                        const keyGcm = await deriveKey(key, salt);
+                        const encoder = new TextEncoder();
+                        const data = encoder.encode(input);
+                        let encrypted;
+
+                        if (data.length > 1024 * 1024) {
+                            encrypted = await encryptLargeData(input, keyGcm, iv);
+                        } else {
+                            encrypted = await window.crypto.subtle.encrypt(
+                                { name: "AES-GCM", iv },
+                                keyGcm,
+                                data
+                            );
+                        }
+
+                        const totalLength = salt.length + iv.length + encrypted.byteLength;
+                        const result = new Uint8Array(totalLength);
+                        result.set(salt, 0);
+                        result.set(iv, salt.length);
+                        result.set(new Uint8Array(encrypted), salt.length + iv.length);
+                        output = arrayBufferToBase64(result);
+                    }
+                    $('#input').val('');
+                    $('#result').text('字节数：' + new TextEncoder().encode(output).length);
+                    $('#output').val(output);
+                } catch (e) {
+                    $('#output').val(`加密失败: ${e.message}`);
+                }
+            });
+
+            // 解密处理
+            $('#decrypt').click(async function() {
+                const method = $('#method').val();
+                const input = $('#output').val().trim();
+                const key = $('#key').val().trim();
+                if (!input) return $('#output').val('请输入待解密内容');
+                if (!key) return $('#output').val('请提供密钥');
+
+                try {
+                    let output = '';
+                    if (method === 'aes') {
+                        const decoded = CryptoJS.enc.Base64.parse(input);
+                        const salt = CryptoJS.lib.WordArray.create(decoded.words.slice(0, 2));
+                        const iv = CryptoJS.lib.WordArray.create(decoded.words.slice(2, 6));
+                        const ciphertext = CryptoJS.lib.WordArray.create(decoded.words.slice(6));
+                        const newKey = CryptoJS.PBKDF2(key, salt, cbcOptions);
+                        const decrypted = CryptoJS.AES.decrypt(
+                            { ciphertext: ciphertext },
+                            newKey,
+                            { iv: iv, mode: CryptoJS.mode.CBC, padding: CryptoJS.pad.Pkcs7 }
+                        );
+                        output = decrypted.toString(CryptoJS.enc.Utf8);
+                        if (!output) throw new Error('解密失败，请检查密钥或输入');
+                    } else if (method === 'aesgcm') {
+                        const data = base64ToArrayBuffer(input);
+                        const salt = data.slice(0, 16);
+                        const iv = data.slice(16, 28);
+                        const encryptedData = data.slice(28);
+                        const keyGcm = await deriveKey(key, salt);
+                        const decrypted = await window.crypto.subtle.decrypt(
+                            { name: "AES-GCM", iv },
+                            keyGcm,
+                            encryptedData
+                        );
+                        output = new TextDecoder().decode(decrypted);
+                    }
+                    $('#result').text('字节数：0');
+                    $('#output').val('');
+                    $('#input').val(output);
+                } catch (e) {
+                    $('#output').val(`解密失败: ${e.message}`);
+                }
+            });
+
+            // 生成随机密钥
+            $('#generate-random-key').click(function() {
+                const key = Array.from(window.crypto.getRandomValues(new Uint8Array(32)), byte => byte.toString(16).padStart(2, '0')).join('');
+                $('#key').val(key);
+                $('#visibleKey').val(key);
+                $('#result').text('字节数：' + new TextEncoder().encode(key).length);
+                $('#output').val(`已生成32字节随机密钥: ${key}`);
+                setTimeout(() => $('#output').val(''), 3000);
+            });
+
+            // 复制输出
+            $('#copy').click(function() {
+                $('#output').select();
+                document.execCommand('copy');
+                $(this).text('已复制').prop('disabled', true);
+                setTimeout(() => $(this).text('复制').prop('disabled', false), 3000);
+            });
+
+            // 清除输入
+            $('#clear').click(function() {
+                $('#input').val('');
+                $('#output').val('');
+                $('#key').val('2m395k3n746m1h6l6m5j756t6p394d7o7c1f3f6s406p7r152i3g0d5r6b1h0v1a');
+                $('#visibleKey').val('2m395k3n746m1h6l6m5j756t6p394d7o7c1f3f6s406p7r152i3g0d5r6b1h0v1a');
+            });
+        });
+    </script>
+</body>
+</html>
