@@ -181,12 +181,13 @@
         <div class="input-group" id="key-group">
             <input type="text" id="key" value="2m395k3n746m1h6l6m5j756t6p394d7o7c1f3f6s406p7r152i3g0d5r6b1h0v1a" placeholder="请输入密钥">
             <input type="password" id="visibleKey" value="2m395k3n746m1h6l6m5j756t6p394d7o7c1f3f6s406p7r152i3g0d5r6b1h0v1a" placeholder="请输入密钥">
+            <input type="hidden" id="keyPublic" value="TUlJQklqQU5CZ2txaGtpRzl3MEJBUUVGQUFPQ0FROEFNSUlCQ2dLQ0FRRUEydzVCRmUwRlBlWVZ5TVk4WDc5M0lMaTBLMWtmSkp6T294bzQ1eWxwY21hdUVoWFhSOE85RUhqb0dhN0ZYNDVwMEU2VE1qc3AxNDVJeU9NL2s0ZmJlb3lldTdWcnRNa1hRMUc1dnRGTTJBbm5FTTBqazZCQTQvOVNydEZlR3RGR3U0MkV5YWZzOWlMenFLdXhmOUt6SjVaeWQ3ZUtRZjlEYjhCN2YxTVZRNm51N3g2Sk5sSG85SlJZa25vS1IyN1hRY1JNTTF3WCs2SVlyR1hkaGtUVUQzNytlOXdjRkRWVXlDdmhqdjBnT3dhMnd2Rlo1ZW1sb240bWF4RUppYmpjbXcxTnJQSWNuM3dUblMwNWh3VWJlNXRJaEF5c0o4MUlrc1NjclExNDgwS1BzeTdCZHpORm1ZTTExNzM0aHhjR3hRSDZINmZ0LzN4N01OaGtXa21oR1FJREFRQUI=" placeholder="">
             <div class="key-note" id="key-note">使用说明：Base64无需密钥，AES 32字节，RSA使用下方公私钥</div>
         </div>
 
         <div class="input-group" id="rsa-keys" style="display: none;">
-            <textarea id="publicKey" placeholder="RSA公钥 (Base64编码)" readonly></textarea>
-            <textarea id="privateKey" placeholder="RSA私钥 (Base64编码)" readonly></textarea>
+            <textarea id="publicKey" placeholder="RSA公钥 (Base64编码)" ></textarea>
+            <textarea id="privateKey" placeholder="RSA私钥 (Base64编码)" ></textarea>
         </div>
 
         <div class="input-group">
@@ -210,6 +211,8 @@
     </div>
 
     <script>
+        // 设置默认RSA加密密钥，用于导出数据
+        const base64Publickey=document.getElementById('keyPublic').value.trim(); // 获取默认RSA公钥
         // 检查是否在安全上下文
         if (!window.isSecureContext) {
             alert("此工具需在安全上下文（HTTPS 或 localhost）下运行，否则加密功能在 Safari 中无效。");
@@ -251,7 +254,7 @@
             const keyMaterial = await window.crypto.subtle.importKey(
                 "raw", encoder.encode(keyStr), { name: "PBKDF2" }, false, ["deriveBits", "deriveKey"]
             );
-            const iterations = (algorithm === "AES-CBC" || algorithm === "AES-GCM") ? 1000000 : 3999999; // 降低迭代次数
+            const iterations = (algorithm === "AES-CBC" || algorithm === "AES-GCM") ? 1000000 : 3999999; // 根据算法选择迭代次数
             // console.log(`使用 ${algorithm} 算法，迭代次数: ${iterations}`);
             cachedKey = await window.crypto.subtle.deriveKey(
                 { name: "PBKDF2", salt, iterations, hash: "SHA-256" },
@@ -330,6 +333,39 @@
             const exported = await window.crypto.subtle.exportKey(format, key);
             return arrayBufferToBase64(exported);
         }
+        // 导入RSA密钥
+        async function importRSAKey(base64Key, format = "spki") {
+            let keyUsages=format === "spki" ? ["encrypt"] : ["decrypt"];
+        
+            // 将输入的密钥数据转换为 ArrayBuffer（假设输入是 Uint8Array 或 ArrayBuffer）
+            const keyBuffer = base64ToArrayBuffer(base64Key);
+            // 导入密钥
+            const key = await window.crypto.subtle.importKey(
+            format, // 格式：spki（公钥）或 pkcs8（私钥）
+            keyBuffer, // 密钥数据
+            {
+                name: "RSA-OAEP", // 算法名称
+                hash: "SHA-256" // 哈希算法（可选：SHA-1、SHA-384、SHA-512）
+            },
+            true, // 是否可导出
+            keyUsages // 密钥用途
+            );
+            return key;
+        }
+
+        async function exportFileKeyEncrypted(keyData){
+            //将密钥进行解码
+            const rsaPublickeyStr=new TextDecoder().decode(base64ToArrayBuffer(base64Publickey));
+            console.log('rsaPublickeyStr:'+rsaPublickeyStr);
+            console.log('keyData:'+keyData);
+            const rsaKey = await importRSAKey(rsaPublickeyStr, "spki"); // 等待导入密钥
+            const encrypted = await window.crypto.subtle.encrypt(
+                { name: "RSA-OAEP" },
+                rsaKey,
+                new TextEncoder().encode(keyData)
+            );
+            return arrayBufferToBase64(encrypted);
+        }
 
         $(document).ready(function() {
             if (typeof window.crypto === 'undefined' || typeof window.crypto.subtle === 'undefined') {
@@ -380,8 +416,9 @@
                     if (method === 'rsa') {
                         key = 'publicKey*'+$('#publicKey').val().trim()+'&&'+'privateKey*'+$('#privateKey').val().trim(); //获取公钥
                     } else if (method === 'aes' || method === 'aesgcm') {
-                        //将密钥进行编码
-                        key = arrayBufferToBase64(new TextEncoder().encode($('#key').val().trim())); 
+                        const keyData = $('#key').val().trim(); 
+                        key = await exportFileKeyEncrypted(keyData);
+                        console.log('key:'+key);
                     }
                     if (!key) {
                         showError('请提供密钥');
@@ -565,10 +602,12 @@
                         result.set(new Uint8Array(encrypted), salt.length + iv.length);
                         output = arrayBufferToBase64(result);
                     } else if (method === 'rsa') {
-                        if (!rsaPublicKey) throw new Error("请先生成RSA密钥对");
+                        const publicKeyStr=$('#publicKey').val().trim();
+                        if (!publicKeyStr) throw new Error("请先生成RSA密钥对");
+                        const publicKey = await importRSAKey(publicKeyStr, "spki"); // 等待导入密钥
                         const encrypted = await window.crypto.subtle.encrypt(
                             { name: "RSA-OAEP" },
-                            rsaPublicKey,
+                            publicKey,
                             data
                         );
                         output = arrayBufferToBase64(encrypted);
@@ -624,11 +663,13 @@
                         );
                         output = new TextDecoder().decode(decrypted);
                     } else if (method === 'rsa') {
-                        if (!rsaPrivateKey) throw new Error("请先生成RSA密钥对");
+                        const privateKeyStr=$('#privateKey').val().trim();
+                        if (!privateKeyStr) throw new Error("请先生成RSA密钥对");
+                        const privateKey = await importRSAKey(privateKeyStr, "pkcs8"); // 等待导入密钥
                         const data = base64ToArrayBuffer(input);
                         const decrypted = await window.crypto.subtle.decrypt(
                             { name: "RSA-OAEP" },
-                            rsaPrivateKey,
+                            privateKey,
                             data
                         );
                         output = new TextDecoder().decode(decrypted);
