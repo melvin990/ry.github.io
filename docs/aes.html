@@ -373,7 +373,8 @@
                 $('#output').val('浏览器不支持 Web Crypto API');
                 return;
             }
-
+            //初始化隐藏密钥输入框
+            $('#visibleKey').hide();
             // 实时更新字节数
             $('#output').on('input', function() {
                 const byteSize = new TextEncoder().encode($(this).val()).length;
@@ -500,10 +501,16 @@
             // 切换加密方法
             $('#method').change(function() {
                 const method = $(this).val();
+                $('#input').val('');
+                $('#output').val('');
+                $('#publicKey').val('');
+                $('#privateKey').val('');
                 if (method === 'rsa') {
+                    $('#visibleKey').hide();
                     $('#rsa-keys').show();
                 } else if(['aes', 'aesgcm'].includes(method)) {
                     $('#rsa-keys').hide();
+                    $('#visibleKey').show();
                     // 生成随机密钥
                     const key = Array.from(window.crypto.getRandomValues(new Uint8Array(32)), byte => byte.toString(16).padStart(2, '0')).join('');
                     $('#key').val(key);
@@ -513,6 +520,7 @@
                     // setTimeout(() => $('#output').val(''), 3000);
                 }else{
                     $('#rsa-keys').hide();
+                    $('#visibleKey').hide();
                 }
             });
 
@@ -539,13 +547,14 @@
                         $('#publicKey').val(publicKeyBase64);
                         $('#privateKey').val(privateKeyBase64);
                         $('#output').val('RSA密钥对已生成');
+                        setTimeout(() => $('#output').val(''), 1000);
                     } else {
                         const key = Array.from(window.crypto.getRandomValues(new Uint8Array(32)), byte => byte.toString(16).padStart(2, '0')).join('');
                         $('#key').val(key);
                         $('#visibleKey').val(key);
                         $('#result').text('字节数：' + new TextEncoder().encode(key).length);
                         $('#output').val(`已生成32字节随机密钥: ${key}`);
-                        setTimeout(() => $('#output').val(''), 3000);
+                        setTimeout(() => $('#output').val(''), 1000);
                     }
                 } catch (e) {
                     $('#output').val(`密钥生成失败: ${e.message}`);
@@ -558,7 +567,7 @@
                 const input = $input.val().trim();
                 const key = $('#key').val().trim();
                 if (!input) return $('#output').val('请输入内容');
-                if (method !== 'base64' && !key) return $('#output').val('请提供密钥');
+                if (method !== 'base64' && method !== 'rsa' && !key) return $('#output').val('请提供密钥');
 
                 try {
                     let output = '';
@@ -637,7 +646,7 @@
                 const input = $('#output').val().trim();
                 const key = $('#key').val().trim();
                 if (!input) return $('#output').val('请输入待解密内容');
-                if (method !== 'base64' && !key) return $('#output').val('请提供密钥');
+                if (method !== 'base64'&& method !== 'rsa' && !key) return $('#output').val('请提供密钥');
 
                 try {
                     let output = '';
