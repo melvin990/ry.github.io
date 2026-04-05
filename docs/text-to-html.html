@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>段落转HTML工具 - 美化版</title>
+    <style>
+        :root {
+            --primary: #5b6ef7;
+            --primary-dark: #4a5be0;
+        }
+        
+        body {
+            font-family: "Microsoft YaHei", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4e9f2 100%);
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1180px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12);
+            overflow: hidden;
+        }
+        
+        header {
+            background: linear-gradient(135deg, var(--primary), #8b9eff);
+            color: white;
+            padding: 28px 30px;
+            text-align: center;
+            position: relative;
+        }
+        
+        header::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: rgba(255,255,255,0.3);
+        }
+        
+        h1 {
+            margin: 0;
+            font-size: 29px;
+            font-weight: 600;
+            letter-spacing: -0.5px;
+        }
+        
+        .subtitle {
+            margin: 8px 0 0;
+            opacity: 0.95;
+            font-size: 16px;
+        }
+        
+        .main {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            padding: 28px;
+        }
+        
+        .panel {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.06);
+            padding: 20px;
+        }
+        
+        .panel h3 {
+            margin: 0 0 14px 0;
+            font-size: 17px;
+            color: #444;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        textarea, .preview {
+            width: 100%;
+            height: 480px;
+            padding: 18px;
+            border: 1.5px solid #e0e4eb;
+            border-radius: 10px;
+            font-size: 16.2px;
+            line-height: 1.82;
+            resize: vertical;
+            transition: border-color 0.2s;
+        }
+        
+        textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(91, 110, 247, 0.15);
+        }
+        
+        .preview {
+            background: #fdfdfd;
+            overflow-y: auto;
+            border-color: #e0e4eb;
+            padding: 32px 28px;
+            line-height: 1.85;
+            font-size: 16.5px;
+            color: #222;
+        }
+        
+        /* 预览区文章样式优化 */
+        .preview h1, .preview h2, .preview h3, .preview h4 {
+            color: #1a1a1a;
+            margin-top: 1.8em;
+            margin-bottom: 0.6em;
+            font-weight: 600;
+        }
+        
+        .preview h2 {
+            font-size: 1.45em;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 8px;
+        }
+        
+        .preview p {
+            margin: 1.1em 0;
+            text-align: justify;
+            text-indent: 2em;
+        }
+        
+        .preview ul, .preview ol {
+            margin: 1.2em 0 1.2em 1.8em;
+            padding-left: 0.5em;
+        }
+        
+        .preview li {
+            margin: 0.45em 0;
+        }
+        
+        .preview blockquote {
+            border-left: 5px solid var(--primary);
+            background: #f8f9fc;
+            margin: 1.6em 0;
+            padding: 14px 22px;
+            color: #444;
+            font-style: italic;
+        }
+        
+        .preview a {
+            color: var(--primary);
+            text-decoration: underline;
+        }
+        
+        .preview strong {
+            color: #1f1f1f;
+        }
+        
+        .btn-group {
+            margin-top: 16px;
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            padding: 12px 26px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 15.5px;
+            font-weight: 500;
+            transition: all 0.25s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.15);
+        }
+        
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: var(--primary-dark);
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+        
+        .output-area {
+            padding: 0 28px 32px;
+        }
+        
+        .output-area textarea {
+            height: 210px;
+            font-family: Consolas, Monaco, 'Courier New', monospace;
+            font-size: 14.8px;
+            background: #f8f9fa;
+            border-color: #d0d4db;
+            line-height: 1.5;
+        }
+        
+        .tips {
+            font-size: 14px;
+            color: #666;
+            margin-top: 8px;
+        }
+        
+        .theme-toggle {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            background: rgba(255,255,255,0.25);
+            border: none;
+            color: white;
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <button class="theme-toggle" onclick="toggleTheme()" title="切换深色模式">🌙</button>
+            <h1>📘 段落转HTML工具</h1>
+            <p class="subtitle">智能转换 · 优雅排版 · 一键复制</p>
+        </header>
+        
+        <div class="main">
+            <!-- 输入面板 -->
+            <div class="panel">
+                <h3>① 粘贴原文</h3>
+                <textarea id="input" placeholder="把从网页、文档、聊天记录等复制的段落文字粘贴在这里..."></textarea>
+                <div class="btn-group">
+                    <button class="btn-primary" onclick="convertToHTML()">🚀 立即转换</button>
+                    <button class="btn-secondary" onclick="clearAll()">清空</button>
+                </div>
+                <div class="tips">提示：按 Ctrl + Enter 可快速转换</div>
+            </div>
+            
+            <!-- 预览面板 -->
+            <div class="panel">
+                <h3>② 实时预览（文章效果）</h3>
+                <div id="preview" class="preview"></div>
+            </div>
+        </div>
+        
+        <!-- 输出区域 -->
+        <div class="output-area">
+            <h3>③ 生成的HTML代码</h3>
+            <textarea id="outputHTML" readonly placeholder="转换后HTML代码将显示在这里..."></textarea>
+            <div class="btn-group">
+                <button class="btn-success" onclick="copyHTML()">📋 复制HTML代码</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 主题切换
+        function toggleTheme() {
+            document.body.style.background = document.body.style.background.includes('linear-gradient') 
+                ? '#1e1e2e' 
+                : 'linear-gradient(135deg, #f5f7fa 0%, #e4e9f2 100%)';
+            
+            const toggleBtn = document.querySelector('.theme-toggle');
+            if (toggleBtn.textContent === '🌙') {
+                toggleBtn.textContent = '☀️';
+                toggleBtn.style.background = 'rgba(255,255,255,0.15)';
+            } else {
+                toggleBtn.textContent = '🌙';
+                toggleBtn.style.background = 'rgba(255,255,255,0.25)';
+            }
+        }
+
+        function escapeHTML(str) {
+            return str
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        function processInlineFormats(text) {
+            let result = escapeHTML(text);
+            result = result.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+            result = result.replace(/__(.+?)__/g, '<strong>$1</strong>');
+            result = result.replace(/\*(.+?)\*/g, '<em>$1</em>');
+            result = result.replace(/_(.+?)_/g, '<em>$1</em>');
+            result = result.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
+            return result;
+        }
+
+        function convertToHTML() {
+            let text = document.getElementById('input').value.trim();
+            if (!text) {
+                alert('请输入或粘贴文字内容！');
+                return;
+            }
+
+            const lines = text.split(/\r?\n/);
+            let html = '';
+            let i = 0;
+
+            while (i < lines.length) {
+                let line = lines[i].trim();
+                if (line === '') {
+                    i++;
+                    continue;
+                }
+
+                // 标题
+                let headingMatch = line.match(/^(#{1,6})\s+(.+)$/);
+                if (headingMatch) {
+                    const level = headingMatch[1].length;
+                    html += `<h${level}>${escapeHTML(headingMatch[2].trim())}</h${level}>\n`;
+                    i++;
+                    continue;
+                }
+
+                if (/^\d+[\.、]/.test(line) && line.length < 70) {
+                    html += `<h2>${escapeHTML(line.replace(/^\d+[\.、\s]+/, '').trim())}</h2>\n`;
+                    i++;
+                    continue;
+                }
+
+                // 引用
+                if (line.startsWith('>')) {
+                    html += `<blockquote>${escapeHTML(line.substring(1).trim())}</blockquote>\n`;
+                    i++;
+                    continue;
+                }
+
+                // 列表
+                let listMatch = line.match(/^(\s*)([-•*+]|\d+\.)\s+(.+)$/);
+                if (listMatch) {
+                    const isOrdered = /^\s*\d+\./.test(line);
+                    html += isOrdered ? '<ol>\n' : '<ul>\n';
+                    
+                    while (i < lines.length) {
+                        let cl = lines[i].trim();
+                        let cm = cl.match(/^(\s*)([-•*+]|\d+\.)\s+(.+)$/);
+                        if (!cm) break;
+                        
+                        html += `  <li>${processInlineFormats(cm[3])}</li>\n`;
+                        i++;
+                    }
+                    
+                    html += isOrdered ? '</ol>\n' : '</ul>\n';
+                    continue;
+                }
+
+                // 普通段落合并
+                let paragraph = line;
+                i++;
+                while (i < lines.length && lines[i].trim() !== '' && 
+                       !lines[i].trim().match(/^(#{1,6})\s+/) && 
+                       !lines[i].trim().startsWith('>') &&
+                       !lines[i].trim().match(/^(\s*)([-•*+]|\d+\.)\s+/)) {
+                    paragraph += ' ' + lines[i].trim();
+                    i++;
+                }
+
+                html += `<p>${processInlineFormats(paragraph.trim())}</p>\n`;
+            }
+
+            document.getElementById('preview').innerHTML = html || '<p style="color:#999;">转换后的内容将在这里预览</p>';
+            document.getElementById('outputHTML').value = html.trim();
+        }
+
+        function copyHTML() {
+            const ta = document.getElementById('outputHTML');
+            if (!ta.value) return alert('没有可复制的内容');
+            
+            ta.select();
+            document.execCommand('copy');
+            
+            const btn = event.currentTarget;
+            const orig = btn.textContent;
+            btn.textContent = '✅ 已复制！';
+            setTimeout(() => btn.textContent = orig, 2000);
+        }
+
+        function clearAll() {
+            document.getElementById('input').value = '';
+            document.getElementById('preview').innerHTML = '';
+            document.getElementById('outputHTML').value = '';
+        }
+
+        // Ctrl+Enter 快捷键
+        document.getElementById('input').addEventListener('keydown', e => {
+            if (e.ctrlKey && e.key === 'Enter') {
+                convertToHTML();
+            }
+        });
+    </script>
+</body>
+</html>
