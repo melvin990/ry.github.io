@@ -10,6 +10,12 @@ dns:
   cache-algorithm: arc          # 更高命中率，低内存占用
   prefer-h3: false              # 关闭 HTTP/3 避免不稳定
   respect-rules: false          # 严格按 nameserver-policy，不被 routing rule 干扰
+  dns-hijack:
+    - tcp/53
+    - udp/53
+    - tcp/853          # DoT
+    - udp/853
+    - tcp/443          # 部分 DoH 走 443，也可选择性添加
 
   # ==================== Fake-IP 核心强化（黑客级防泄漏） ====================
   enhanced-mode: fake-ip        # Stash/Clash Meta 推荐模式
@@ -20,11 +26,9 @@ dns:
     - 'ipleak.net'
     - '*.dnsleaktest.com'
     - '*.browserleaks.com'
-    - '*.lan'
     - '*.local'
     - 'localhost.*'
     - '*.lan'
-    - '*.local'
     - 'localhost.*'
     - '*.stun.*.*'
     - '+.ptlogin2.qq.com'
@@ -67,7 +71,9 @@ dns:
     - https://cloudflare-dns.com/dns-query#PROXY
     - tls://8.8.8.8:853#PROXY
     - https://9.9.9.9/dns-query#PROXY              # Quad9（安全、阻恶意）
-
+  proxy-server-nameserver:
+    - https://dns.alidns.com/dns-query#DIRECT
+    - https://doh.pub/dns-query#DIRECT
   fallback-filter:
     geoip: true
     geoip-code: CN
@@ -166,13 +172,15 @@ rules:
   # clash-rules
   - DOMAIN,clash.razord.top,DIRECT
   - DOMAIN,yacd.haishan.me,DIRECT
-  - RULE-SET,private,DIRECT,no-resolve
   - RULE-SET,reject,REJECT
+  - RULE-SET,private,DIRECT,no-resolve
   - RULE-SET,icloud,DIRECT
   - RULE-SET,apple,DIRECT
+  - RULE-SET,direct,DIRECT
+  - GEOIP,CN,DIRECT,no-resolve
+  - RULE-SET,cncidr,DIRECT,no-resolve
+  - RULE-SET,lancidr,DIRECT,no-resolve
+  - RULE-SET,telegramcidr,XSUS,no-resolve   # telegramcidr 是 IP 规则，加 no-resolve
   - RULE-SET,google,XSUS
   - RULE-SET,proxy,XSUS
-  - RULE-SET,direct,DIRECT
-  - RULE-SET,lancidr,DIRECT
-  - RULE-SET,cncidr,DIRECT
-  - RULE-SET,telegramcidr,XSUS
+  - MATCH,XSUS                              # 必须加兜底，走你的代理组（XSUS）
