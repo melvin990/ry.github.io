@@ -1,0 +1,89 @@
+name: 🔥 黑客级 DNS + Fake-IP 极致安全覆写
+desc: 2026 红队优化 | 零泄漏 + 抗污染 + 低指纹 | 配合机场白名单规则
+
+dns:
+  enable: true
+  listen: 0.0.0.0:53
+  ipv6: true                    # 开启 IPv6（若你不需要可改 false，减少指纹）
+  use-system-hosts: false       # 关闭系统 hosts，防止运营商/系统污染
+  use-hosts: true               # 仅使用配置内的 hosts
+  cache-algorithm: arc          # 更高命中率，低内存占用
+  prefer-h3: false              # 关闭 HTTP/3 避免不稳定
+  respect-rules: false          # 严格按 nameserver-policy，不被 routing rule 干扰
+
+  # ==================== Fake-IP 核心强化（黑客级防泄漏） ====================
+  enhanced-mode: fake-ip        # Stash/Clash Meta 推荐模式
+  fake-ip-range: 198.18.0.1/16
+  fake-ip-filter-mode: blacklist
+  fake-ip-filter:
+    - '*.lan'
+    - '*.local'
+    - 'localhost.*'
+    - '*.stun.*.*'
+    - '+.ptlogin2.qq.com'
+    - '+.id.qq.com'
+    - '+.weixin.qq.com'
+    - '+.wx.qq.com'
+    - 'api.mixpanel.com'          # 常见追踪
+    - '*.doubleclick.net'
+    - '*.google-analytics.com'
+    - '*.cn'
+    - '*.com.cn'
+    - '*.net.cn'
+    - 'baidu.com'
+    - 'taobao.com'
+    - 'jd.com'
+    - 'douyin.com'
+    - 'alipay.com'
+    - 'qq.com'
+    - '163.com'
+    - '126.com'
+
+  # ==================== 引导 DNS（必须用纯 IP，避免循环） ====================
+  default-nameserver:
+    - 223.5.5.5          # 阿里 DNS（最稳国内引导）
+    - 223.6.6.6
+    - 114.114.114.114
+
+  # ==================== 主 nameserver（国内直连 + 国外代理） ====================
+  nameserver:
+    - https://dns.alidns.com/dns-query#DIRECT      # 阿里 DoH（最快国内）
+    - https://doh.pub/dns-query#DIRECT             # 腾讯 DNSPod（备用）
+    - tls://223.5.5.5:853#DIRECT                   # 阿里 DoT（加密）
+    - https://dns.google/dns-query#PROXY           # Google（国外首选）
+    - https://cloudflare-dns.com/dns-query#PROXY   # Cloudflare（隐私强）
+    - tls://1.1.1.1:853#PROXY                      # Cloudflare DoT
+
+  # ==================== 兜底 + 严格过滤（防泄漏核心） ====================
+  fallback:
+    - https://dns.google/dns-query#PROXY
+    - https://cloudflare-dns.com/dns-query#PROXY
+    - tls://8.8.8.8:853#PROXY
+    - https://9.9.9.9/dns-query#PROXY              # Quad9（安全、阻恶意）
+
+  fallback-filter:
+    geoip: true
+    geoip-code: CN
+    geosite:
+      - gfw
+      - google
+      - youtube
+      - telegram
+      - netflix
+      - disney
+      - spotify
+
+  # ==================== 精准策略（黑客级域名分流） ====================
+  nameserver-policy:
+    # 国内全直连（高性能 + 防污染）
+    'geosite:cn,private,apple,icloud': https://dns.alidns.com/dns-query#DIRECT
+    '+.baidu.com,+.taobao.com,+.jd.com,+.douyin.com,+.alipay.com,+.qq.com': https://dns.alidns.com/dns-query#DIRECT
+
+    # 国外/敏感服务强制走代理（防 ISP 劫持）
+    'geosite:google,youtube,telegram,netflix,disney,spotify,facebook,twitter,github': https://dns.google/dns-query#PROXY
+
+    # 额外隐私保护
+    '+.analytics.google.com,+.doubleclick.net,+.mixpanel.com': https://9.9.9.9/dns-query#PROXY
+
+  # 可选：开启 follow-rule（仅在极致分流需求时打开，会略增延迟）
+  # follow-rule: false
