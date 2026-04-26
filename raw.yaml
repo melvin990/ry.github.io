@@ -68,16 +68,17 @@ rule-providers:
     url: https://cdn.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/lancidr.txt
     interval: 86400
 rules:
-  # clash-rules
   - DOMAIN,clash.razord.top,DIRECT
   - DOMAIN,yacd.haishan.me,DIRECT
-  - RULE-SET,private,DIRECT
   - RULE-SET,reject,REJECT
+  - RULE-SET,private,DIRECT,no-resolve
   - RULE-SET,icloud,DIRECT
   - RULE-SET,apple,DIRECT
+  - RULE-SET,direct,DIRECT
+  - GEOIP,CN,DIRECT,no-resolve
+  - RULE-SET,cncidr,DIRECT,no-resolve
+  - RULE-SET,lancidr,DIRECT,no-resolve
+  - RULE-SET,telegramcidr,XSUS,no-resolve   # telegramcidr 是 IP 规则，加 no-resolve
   - RULE-SET,google,XSUS
   - RULE-SET,proxy,XSUS
-  - RULE-SET,direct,DIRECT
-  - RULE-SET,lancidr,DIRECT
-  - RULE-SET,cncidr,DIRECT
-  - RULE-SET,telegramcidr,XSUS
+  - MATCH,XSUS                              # 必须加兜底，走你的代理组（XSUS）
