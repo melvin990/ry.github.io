@@ -1,0 +1,92 @@
+name: 🇨🇳 国内App直连优化
+desc: 专门用于国内常用App强制直连 | 减少卡顿、功能异常 | 适用于小红书、抖音、美团、饿了么、携程、银行、联通等 | 2026更新
+
+# 只提供规则，不覆盖DNS、代理组等其他配置
+rules:
+  # ==================== 金融与运营商（最高优先级，风控敏感） ====================
+  # 中国联通
+  - DOMAIN-SUFFIX,10010.com,DIRECT
+  - DOMAIN-SUFFIX,chinaunicom.com,DIRECT
+  - DOMAIN-SUFFIX,unicom.com,DIRECT
+  - DOMAIN-SUFFIX,wo.com.cn,DIRECT
+  - DOMAIN-KEYWORD,10010,DIRECT
+
+  # 农业银行 (ABC)
+  - DOMAIN-SUFFIX,abchina.com,DIRECT
+  - DOMAIN-SUFFIX,95599.com,DIRECT
+  - DOMAIN-SUFFIX,abcbank.com,DIRECT
+
+  # 招商银行 (CMB)
+  - DOMAIN-SUFFIX,cmbchina.com,DIRECT
+  - DOMAIN-SUFFIX,95555.com,DIRECT
+  - DOMAIN-SUFFIX,cmb.com,DIRECT
+
+  # 光大银行 (CEB)
+  - DOMAIN-SUFFIX,cebbank.com,DIRECT
+  - DOMAIN-SUFFIX,95595.com,DIRECT
+
+  # 建设银行 (CCB)
+  - DOMAIN-SUFFIX,ccb.com,DIRECT
+  - DOMAIN-SUFFIX,95533.com,DIRECT
+
+  # ==================== 其他国内常用 App ====================
+  # 小红书
+  - DOMAIN-SUFFIX,xiaohongshu.com,DIRECT
+  - DOMAIN-SUFFIX,xhslink.com,DIRECT
+  - DOMAIN-SUFFIX,xiapian.com,DIRECT
+  - DOMAIN-SUFFIX,rednoteapp.com,DIRECT
+  - DOMAIN-SUFFIX,cdn.xiaohongshu.com,DIRECT
+  - DOMAIN-SUFFIX,img.xiaohongshu.com,DIRECT
+  - DOMAIN-SUFFIX,video.xiaohongshu.com,DIRECT
+
+  # 抖音 / 字节系
+  - DOMAIN-SUFFIX,douyin.com,DIRECT
+  - DOMAIN-SUFFIX,iesdouyin.com,DIRECT
+  - DOMAIN-SUFFIX,byteimg.com,DIRECT
+  - DOMAIN-SUFFIX,bytedance.com,DIRECT
+
+  # 快手
+  - DOMAIN-SUFFIX,kuaishou.com,DIRECT
+  - DOMAIN-SUFFIX,kwai.com,DIRECT
+
+  # 淘宝 / 阿里系
+  - DOMAIN-SUFFIX,taobao.com,DIRECT
+  - DOMAIN-SUFFIX,tmall.com,DIRECT
+  - DOMAIN-SUFFIX,alibaba.com,DIRECT
+  - DOMAIN-SUFFIX,alipay.com,DIRECT
+  - DOMAIN-SUFFIX,alicdn.com,DIRECT
+
+  # 京东
+  - DOMAIN-SUFFIX,jd.com,DIRECT
+  - DOMAIN-SUFFIX,360buy.com,DIRECT
+
+  # 微信
+  - DOMAIN-SUFFIX,weixin.qq.com,DIRECT
+  - DOMAIN-SUFFIX,wx.qq.com,DIRECT
+  - DOMAIN-SUFFIX,mmstat.com,DIRECT
+
+  # 美团
+  - DOMAIN-SUFFIX,meituan.com,DIRECT
+  - DOMAIN-SUFFIX,meituan.net,DIRECT
+  - DOMAIN-SUFFIX,dianping.com,DIRECT
+
+  # 饿了么
+  - DOMAIN-SUFFIX,ele.me,DIRECT
+  - DOMAIN-SUFFIX,eleme.com,DIRECT
+
+  # 携程
+  - DOMAIN-SUFFIX,ctrip.com,DIRECT
+  - DOMAIN-SUFFIX,fliggy.com,DIRECT
+  - DOMAIN-SUFFIX,c-ctrip.com,DIRECT
+
+  # 拼多多、微博、Bilibili 等
+  - DOMAIN-SUFFIX,pinduoduo.com,DIRECT
+  - DOMAIN-SUFFIX,weibo.com,DIRECT
+  - DOMAIN-SUFFIX,bilibili.com,DIRECT
+  - DOMAIN-SUFFIX,acgvideo.com,DIRECT
+  - DOMAIN-SUFFIX,zhihu.com,DIRECT
+  - DOMAIN-SUFFIX,didiglobal.com,DIRECT   # 滴滴
+
+  # ==================== 兜底保护（可选） ====================
+  - GEOIP,CN,DIRECT,no-resolve
+  - MATCH,XSUS   # 如果你的代理组叫 XSUS，否则改成你的代理组名称
