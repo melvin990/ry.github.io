@@ -2,14 +2,15 @@ name: DNS + Fake-IP 覆写
 desc: 2026 DNS + Fake-IP 覆写 | 零泄漏 + 抗污染 + 低指纹 | 配合机场白名单规则
 
 dns:
-  #enable: true
+  enable: false
   #listen: 0.0.0.0:53
-  #ipv6: false                    # 开启 IPv6（若你不需要可改 false，减少指纹）
+  ipv6: false                    # 开启 IPv6（若你不需要可改 false，减少指纹）
   #use-system-hosts: false       # 关闭系统 hosts，防止运营商/系统污染
   #use-hosts: true               # 仅使用配置内的 hosts
   #cache-algorithm: arc          # 更高命中率，低内存占用
   #prefer-h3: false              # 关闭 HTTP/3 避免不稳定
   #respect-rules: false          # 严格按 nameserver-policy，不被 routing rule 干扰
+  use-hosts: true
   dns-hijack:
     - tcp/53
     - udp/53
