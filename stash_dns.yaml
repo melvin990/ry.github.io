@@ -168,7 +168,7 @@ rules:
   - DOMAIN,yacd.haishan.me,DIRECT
   - RULE-SET,private,DIRECT,no-resolve
   - GEOIP,CN,DIRECT,no-resolve          # 关键
-  - RULE-SET,cn,DIRECT,no-resolve       # 关键
+  - RULE-SET DIRECT,no-resolve       # 关键
   - RULE-SET,reject,REJECT
   - RULE-SET,icloud,DIRECT
   - RULE-SET,apple,DIRECT
