@@ -29,7 +29,6 @@ dns:
     - '*.local'
     - 'localhost.*'
     - '*.lan'
-    - 'localhost.*'
     - '*.stun.*.*'
     - '+.ptlogin2.qq.com'
     - '+.id.qq.com'
