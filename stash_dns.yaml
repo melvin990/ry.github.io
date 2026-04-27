@@ -30,6 +30,7 @@ dns:
     - 'api.mixpanel.com'
     - '*.doubleclick.net'
     - '*.google-analytics.com'
+    - '+.msftconnecttest.com'   # 可选添加
 
   # ==================== 引导 DNS（必须用纯 IP，避免循环） ====================
   default-nameserver:
@@ -47,6 +48,7 @@ dns:
   fallback:
     - https://cloudflare-dns.com/dns-query#PROXY
     - https://9.9.9.9/dns-query#PROXY
+    - tls://1.1.1.1:853#PROXY
   proxy-server-nameserver:
     - https://dns.alidns.com/dns-query#DIRECT
     - https://doh.pub/dns-query#DIRECT
@@ -61,12 +63,20 @@ dns:
       - netflix
       - disney
       - spotify
-    ipcidr: - 240.0.0.0/4
+    ipcidr:
+      - 240.0.0.0/4      # 保留地址
+      - 0.0.0.0/8
+      - 10.0.0.0/8
+      - 127.0.0.0/8
+      - 169.254.0.0/16
+      - 172.16.0.0/12
+      - 192.168.0.0/16
 
   # ==================== 精准策略（黑客级域名分流） ====================
   nameserver-policy:
     # 国内全直连（高性能 + 防污染）
-    'geosite:cn,private,apple,icloud': https://dns.alidns.com/dns-query#DIRECT
+    'geosite:cn,private': https://dns.alidns.com/dns-query#DIRECT
+    'geosite:apple@cn,icloud@cn': https://dns.alidns.com/dns-query#DIRECT
     '+.baidu.com,+.taobao.com,+.jd.com,+.douyin.com,+.alipay.com,+.qq.com': https://dns.alidns.com/dns-query#DIRECT
 
     # 国外/敏感服务强制走代理（防 ISP 劫持）
