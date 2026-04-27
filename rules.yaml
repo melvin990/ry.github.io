@@ -2,6 +2,11 @@ name: clash-rules
 desc: clash-rules 规则集覆写
 
 rule-providers:
+  app:
+    behavior: domain
+    format: yaml
+    url: https://melvin990.github.io/ry.github.io/app.txt
+    interval: 86400
   reject:
     behavior: domain
     format: yaml
@@ -70,6 +75,7 @@ rule-providers:
 rules:
   - DOMAIN,clash.razord.top,DIRECT
   - DOMAIN,yacd.haishan.me,DIRECT
+  - RULE-SET,app,DIRECT
   - RULE-SET,reject,REJECT
   - RULE-SET,private,DIRECT,no-resolve
   - RULE-SET,icloud,DIRECT
