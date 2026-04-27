@@ -85,6 +85,6 @@ rules:
   - RULE-SET,cncidr,🧱国内网址,no-resolve
   - RULE-SET,lancidr,🧱国内网址,no-resolve
   - RULE-SET,telegramcidr,📲电报信息,no-resolve   # telegramcidr 是 IP 规则，加 no-resolve
-  - RULE-SET,google,🌍 国外媒体
-  - RULE-SET,proxy,🌍 国外媒体
+  - RULE-SET,google,🌍国外媒体
+  - RULE-SET,proxy,🌍国外媒体
   - MATCH,🐟境外网站
