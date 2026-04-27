@@ -1,68 +1,77 @@
 payload:
-  # ==================== 国内App直连优化子模块（最高优先级）===================
-  # 金融与运营商（风控敏感，必须最先）
-  - '10010.com'
-  - 'chinaunicom.com'
-  - 'unicom.com'
-  - 'wo.com.cn'
+  # 金融与运营商（风控敏感，最先匹配）
+  - '+.10010.com'
+  - '+.chinaunicom.com'
+  - '+.unicom.com'
+  - '+.wo.com.cn'
 
-  - 'abchina.com'
-  - '95599.com'
-  - 'abcbank.com'
+  - '+.abchina.com'
+  - '+.95599.com'
+  - '+.abcbank.com'
 
-  - 'cmbchina.com'
-  - '95555.com'
-  - 'cmb.com'
+  - '+.cmbchina.com'
+  - '+.95555.com'
+  - '+.cmb.com'
 
-  - 'cebbank.com'
-  - '95595.com'
-  
-  - 'ccb.com'
-  - '95533.com'
+  - '+.cebbank.com'
+  - '+.95595.com'
+
+  - '+.ccb.com'
+  - '+.95533.com'
+
   # 小红书
-  - 'xiaohongshu.com'
-  - 'xhslink.com'
-  - 'xiapian.com'
-  - 'rednoteapp.com'
-  - 'cdn.xiaohongshu.com'
-  - 'img.xiaohongshu.com'
-  - 'video.xiaohongshu.com'
+  - '+.xiaohongshu.com'
+  - '+.xhslink.com'
+  - '+.xiapian.com'
+  - '+.rednoteapp.com'
+  - '+.cdn.xiaohongshu.com'
+  - '+.img.xiaohongshu.com'
+  - '+.video.xiaohongshu.com'
+
   # 抖音 / 字节系
-  - 'douyin.com'
-  - 'iesdouyin.com'
-  - 'byteimg.com'
-  - 'bytedance.com'
+  - '+.douyin.com'
+  - '+.iesdouyin.com'
+  - '+.byteimg.com'
+  - '+.bytedance.com'
+
   # 快手
-  - 'kuaishou.com'
-  - 'kwai.com'
+  - '+.kuaishou.com'
+  - '+.kwai.com'
+
   # 淘宝 / 阿里系
-  - 'taobao.com'
-  - 'tmall.com'
-  - 'alibaba.com'
-  - 'alipay.com'
-  - 'alicdn.com'
+  - '+.taobao.com'
+  - '+.tmall.com'
+  - '+.alibaba.com'
+  - '+.alipay.com'
+  - '+.alicdn.com'
+
   # 京东
-  - 'jd.com'
-  - '360buy.com'
+  - '+.jd.com'
+  - '+.360buy.com'
+
   # 微信
-  - 'weixin.qq.com'
-  - 'wx.qq.com'
-  - 'mmstat.com'
+  - '+.weixin.qq.com'
+  - '+.wx.qq.com'
+  - '+.mmstat.com'
+
   # 美团
-  - 'meituan.com'
-  - 'meituan.net'
-  - 'dianping.com'
+  - '+.meituan.com'
+  - '+.meituan.net'
+  - '+.dianping.com'
+
   # 饿了么
-  - 'ele.me'
-  - 'eleme.com'
+  - '+.ele.me'
+  - '+.eleme.com'
+
   # 携程
-  - 'ctrip.com'
-  - 'fliggy.com'
-  - 'c-ctrip.com'
-  # 其他常用
-  - 'pinduoduo.com'
-  - 'weibo.com'
-  - 'bilibili.com'
-  - 'acgvideo.com'
-  - 'zhihu.com'
-  - 'didiglobal.com'
+  - '+.ctrip.com'
+  - '+.fliggy.com'
+  - '+.c-ctrip.com'
+
+  # 其他常用国内App
+  - '+.pinduoduo.com'
+  - '+.weibo.com'
+  - '+.bilibili.com'
+  - '+.acgvideo.com'
+  - '+.zhihu.com'
+  - '+.didiglobal.com'
