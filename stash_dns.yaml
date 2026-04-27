@@ -1,5 +1,5 @@
-name: DNS + Fake-IP 覆写
-desc: 2026 DNS + Fake-IP 覆写 | 零泄漏 + 抗污染 + 低指纹 | 配合机场白名单规则
+name: DNS + Fake-IP 2026 终极覆写
+desc: 2026 标准 | 零泄漏 + QUIC 混淆 + 极致分流 | 建议配合规则集 (Rule-Set) 使用
 
 dns:
   #enable: false
@@ -8,8 +8,8 @@ dns:
   use-system-hosts: false       # 关闭系统 hosts，防止运营商/系统污染
   use-hosts: true               # 仅使用配置内的 hosts
   cache-algorithm: arc          # 更高命中率，低内存占用
-  prefer-h3: false              # 关闭 HTTP/3 避免不稳定
-  respect-rules: false          # 严格按 nameserver-policy，不被 routing rule 干扰
+  prefer-h3: true               # 2026 核心：开启 DoH3 (QUIC)，利用加密混淆对抗指纹识别
+  respect-rules:  true          # 优先匹配规则集，确保 DNS 解析路径与分流路径完全一致
   dns-hijack:
     - tcp/53
     - udp/53
@@ -24,45 +24,44 @@ dns:
     - '*.local'
     - '*.lan'
     - 'localhost.*'
-    - '*.stun.*.*'
-    - '+.ptlogin2.qq.com'   # 仅保留必要
+    - '*.stun.*.*' # 拦截 STUN 穿透，防止真实 IP 暴露
+    - '+.msftncsi.com' # Windows 联网检测（不走 Fake-IP 避免延迟判断错误）
+    - '+.msftconnecttest.com'
+    - '+.ptlogin2.qq.com'
     - '+.id.qq.com'
     - 'api.mixpanel.com'
+    - 'workplace.com' # 保护内网环境不被映射
     - '*.doubleclick.net'
     - '*.google-analytics.com'
-    - '+.msftconnecttest.com'   # 可选添加
 
   # ==================== 引导 DNS（必须用纯 IP，避免循环） ====================
   default-nameserver:
-    - 223.5.5.5          # 阿里 DNS（最稳国内引导）
-    - 223.6.6.6
-    - 114.114.114.114
+    - 223.5.5.5 # 阿里 DNS
+    - 119.29.29.29 # 腾讯 DNS
+    - 1.1.1.1 # Cloudflare (作为海外节点解析备份)
 
-  # ==================== 主 nameserver（国内直连 + 国外代理） ====================
+  # ==================== 主 DNS 服务 （国内直连 + 国外代理） ====================
   nameserver:
     - https://dns.alidns.com/dns-query#DIRECT
     - https://doh.pub/dns-query#DIRECT
     - https://dns.google/dns-query#PROXY
 
-  # ==================== 兜底 + 严格过滤（防泄漏核心） ====================
+  # ==================== 兜底 + 严格过滤（防泄漏核心）(国外代理)  ====================
   fallback:
     - https://cloudflare-dns.com/dns-query#PROXY
     - https://9.9.9.9/dns-query#PROXY
     - tls://1.1.1.1:853#PROXY
+  # ==================== 节点域名解析安全 ====================
+  # 专门用于解析机场服务器地址，防止解析过程被墙嗅探  
   proxy-server-nameserver:
     - https://dns.alidns.com/dns-query#DIRECT
     - https://doh.pub/dns-query#DIRECT
+  # ==================== Fallback 触发条件 ====================
   fallback-filter:
     geoip: true
     geoip-code: CN
     geosite:
       - gfw
-      - google
-      - youtube
-      - telegram
-      - netflix
-      - disney
-      - spotify
     ipcidr:
       - 240.0.0.0/4      # 保留地址
       - 0.0.0.0/8
@@ -74,14 +73,16 @@ dns:
 
   # ==================== 精准策略（黑客级域名分流） ====================
   nameserver-policy:
-    # 国内全直连（高性能 + 防污染）
+    # 1.国内全直连（高性能 + 防污染）
     'geosite:cn,private': https://dns.alidns.com/dns-query#DIRECT
     'geosite:apple@cn,icloud@cn': https://dns.alidns.com/dns-query#DIRECT
     '+.baidu.com,+.taobao.com,+.jd.com,+.douyin.com,+.alipay.com,+.qq.com': https://dns.alidns.com/dns-query#DIRECT
 
-    # 国外/敏感服务强制走代理（防 ISP 劫持）
-    'geosite:google,youtube,telegram,netflix,disney,spotify,facebook,twitter,github': https://dns.google/dns-query#PROXY
-
+    # 2.国外/敏感服务强制走代理（防 ISP 劫持）
+    'geosite:google,youtube,telegram,netflix,disney,spotify,facebook,twitter,github,ganjingworld,category-ads-all': https://dns.google/dns-query#PROXY
+    
+    # 3. 2026 特供：非中国区域名兜底通过代理 DNS 解析，防止通过 DNS 响应延迟推断用户位置
+    'geosite:geolocation-!cn': https://dns.google/dns-query#PROXY
     # 额外隐私保护
     '+.analytics.google.com,+.doubleclick.net,+.mixpanel.com': https://9.9.9.9/dns-query#PROXY
 
