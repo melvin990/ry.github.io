@@ -15,39 +15,21 @@ dns:
     - udp/53
     - tcp/853          # DoT
     - udp/853
-    - tcp/443          # 部分 DoH 走 443，也可选择性添加
 
   # ==================== Fake-IP 核心强化（黑客级防泄漏） ====================
   enhanced-mode: fake-ip        # Stash/Clash Meta 推荐模式
   fake-ip-range: 198.18.0.1/16
   fake-ip-filter-mode: blacklist
   fake-ip-filter:
-    - '*.ipleak.net'
-    - 'ipleak.net'
-    - '*.dnsleaktest.com'
-    - '*.browserleaks.com'
     - '*.local'
-    - 'localhost.*'
     - '*.lan'
+    - 'localhost.*'
     - '*.stun.*.*'
-    - '+.ptlogin2.qq.com'
+    - '+.ptlogin2.qq.com'   # 仅保留必要
     - '+.id.qq.com'
-    - '+.weixin.qq.com'
-    - '+.wx.qq.com'
-    - 'api.mixpanel.com'          # 常见追踪
+    - 'api.mixpanel.com'
     - '*.doubleclick.net'
     - '*.google-analytics.com'
-    - '*.cn'
-    - '*.com.cn'
-    - '*.net.cn'
-    - 'baidu.com'
-    - 'taobao.com'
-    - 'jd.com'
-    - 'douyin.com'
-    - 'alipay.com'
-    - 'qq.com'
-    - '163.com'
-    - '126.com'
 
   # ==================== 引导 DNS（必须用纯 IP，避免循环） ====================
   default-nameserver:
@@ -57,19 +39,14 @@ dns:
 
   # ==================== 主 nameserver（国内直连 + 国外代理） ====================
   nameserver:
-    - https://dns.alidns.com/dns-query#DIRECT      # 阿里 DoH（最快国内）
-    - https://doh.pub/dns-query#DIRECT             # 腾讯 DNSPod（备用）
-    - tls://223.5.5.5:853#DIRECT                   # 阿里 DoT（加密）
-    - https://dns.google/dns-query#PROXY           # Google（国外首选）
-    - https://cloudflare-dns.com/dns-query#PROXY   # Cloudflare（隐私强）
-    - tls://1.1.1.1:853#PROXY                      # Cloudflare DoT
+    - https://dns.alidns.com/dns-query#DIRECT
+    - https://doh.pub/dns-query#DIRECT
+    - https://dns.google/dns-query#PROXY
 
   # ==================== 兜底 + 严格过滤（防泄漏核心） ====================
   fallback:
-    - https://dns.google/dns-query#PROXY
     - https://cloudflare-dns.com/dns-query#PROXY
-    - tls://8.8.8.8:853#PROXY
-    - https://9.9.9.9/dns-query#PROXY              # Quad9（安全、阻恶意）
+    - https://9.9.9.9/dns-query#PROXY
   proxy-server-nameserver:
     - https://dns.alidns.com/dns-query#DIRECT
     - https://doh.pub/dns-query#DIRECT
@@ -84,6 +61,7 @@ dns:
       - netflix
       - disney
       - spotify
+    ipcidr: - 240.0.0.0/4
 
   # ==================== 精准策略（黑客级域名分流） ====================
   nameserver-policy:
@@ -98,4 +76,4 @@ dns:
     '+.analytics.google.com,+.doubleclick.net,+.mixpanel.com': https://9.9.9.9/dns-query#PROXY
 
   # 可选：开启 follow-rule（仅在极致分流需求时打开，会略增延迟）
-  # follow-rule: false
+  follow-rule: false
