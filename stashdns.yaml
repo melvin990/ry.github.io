@@ -1,15 +1,15 @@
-name: DNS-FakeIP-Final-Fix
-desc: System Proxy 极简版 - 解决布尔值null错误
+name: DNS-FakeIP-Final-Fix-v2
+desc: 彻底解决布尔值解析错误
 
 dns:
   enable: true
   listen: 0.0.0.0:53
-  ipv6: false
-  use-system-hosts: false
+  ipv6: "false"
+  use-system-hosts: "false"
   use-hosts: true
   cache-algorithm: arc
-  prefer-h3: false
-  respect-rules: false
+  prefer-h3: "false"
+  respect-rules: "false"
 
   dns-hijack:
     - 'tcp://0.0.0.0:53'
@@ -77,4 +77,4 @@ dns:
     'geosite:google,youtube,telegram': https://dns.google/dns-query#PROXY
     'geosite:geolocation-!cn': https://dns.google/dns-query#PROXY
 
-  follow-rule: false
+  follow-rule: "false"
