@@ -1,0 +1,97 @@
+name: DNS + Fake-IP 2026 顶级优化版（System Proxy）
+desc: 非TUN模式下极致防泄漏优化 | 已修复YAML解析错误
+
+dns:
+  enable: true
+  listen: 0.0.0.0:53
+  ipv6: false
+  use-system-hosts: false
+  use-hosts: true
+  cache-algorithm: arc
+  prefer-h3: false
+  respect-rules: false
+
+  # DNS劫持 - System Proxy模式下最关键
+  dns-hijack:
+    - 'tcp://0.0.0.0:53'
+    - 'udp://0.0.0.0:53'
+    - 'tcp://0.0.0.0:853'
+    - 'udp://0.0.0.0:853'
+
+  # Fake-IP 设置
+  enhanced-mode: fake-ip
+  fake-ip-range: 198.18.0.1/16
+  fake-ip-filter-mode: blacklist
+  fake-ip-ttl: 1800
+
+  fake-ip-filter:
+    - '*.local'
+    - '*.lan'
+    - 'localhost.*'
+    - '*.stun.*.*'
+    - '+.stun.l.google.com'
+    - '+.msftncsi.com'
+    - '+.msftconnecttest.com'
+    - 'captive.apple.com'
+    - '+.ptlogin2.qq.com'
+    - '+.id.qq.com'
+    - '+.weixin.qq.com'
+    - '+.wx.qq.com'
+    - 'api.mixpanel.com'
+    - '*.doubleclick.net'
+    - '*.google-analytics.com'
+    - '*.cn'
+    - '*.com.cn'
+    - '*.net.cn'
+    - 'baidu.com'
+    - 'taobao.com'
+    - 'jd.com'
+    - 'douyin.com'
+    - 'alipay.com'
+    - 'qq.com'
+
+  # 引导 DNS
+  default-nameserver:
+    - 223.5.5.5
+    - 223.6.6.6
+
+  # 主 nameserver
+  nameserver:
+    - https://dns.alidns.com/dns-query#DIRECT
+    - https://doh.pub/dns-query#DIRECT
+    - https://dns.google/dns-query#PROXY
+    - https://cloudflare-dns.com/dns-query#PROXY
+
+  # 节点域名解析保护
+  proxy-server-nameserver:
+    - https://dns.alidns.com/dns-query#DIRECT
+
+  # 兜底 DNS
+  fallback:
+    - https://cloudflare-dns.com/dns-query#PROXY
+    - https://9.9.9.9/dns-query#PROXY
+    - tls://1.1.1.1:853#PROXY
+
+  # Fallback过滤
+  fallback-filter:
+    geoip: true
+    geoip-code: CN
+    geosite:
+      - gfw
+      - google
+      - youtube
+      - telegram
+
+  # 精准DNS策略
+  nameserver-policy:
+    'geosite:cn,private': https://dns.alidns.com/dns-query#DIRECT
+    'geosite:apple,icloud': https://dns.alidns.com/dns-query#DIRECT
+
+    '+.baidu.com,+.taobao.com,+.jd.com,+.pinduoduo.com,+.douyin.com,+.alipay.com,+.qq.com,+.wx.qq.com,+.mmstat.com,+.xiaohongshu.com,+.weibo.com,+.zhihu.com,+.meituan.com,+.ele.me,+.ctrip.com': https://dns.alidns.com/dns-query#DIRECT
+
+    'geosite:google,youtube,telegram,netflix,github': https://dns.google/dns-query#PROXY
+    'geosite:geolocation-!cn': https://dns.google/dns-query#PROXY
+
+    '+.analytics.google.com,+.doubleclick.net,+.mixpanel.com': https://9.9.9.9/dns-query#PROXY
+
+  follow-rule: false
