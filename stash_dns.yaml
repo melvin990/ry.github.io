@@ -2,7 +2,7 @@ name: DNS + Fake-IP 2026 终极稳定版
 desc: 2026 推荐 | 零泄漏 + 抗污染 + 低指纹 + 高稳定 | 配合机场白名单规则 + TUN 模式 | 已按 Clash Meta / Stash / mihomo 最新实践优化
 
 dns:
-  #enable: false                  # 生产环境建议保持注释（由 Stash/Clash 自动启用）
+  enable: true                  # 生产环境建议保持注释（由 Stash/Clash 自动启用）
   listen: 0.0.0.0:53             # TUN 模式下推荐 0.0.0.0，系统级劫持更彻底
   ipv6: false                    # 关闭 IPv6，显著降低指纹 + 减少不必要解析
   use-system-hosts: false        # 关闭系统 hosts，防止运营商/系统污染
