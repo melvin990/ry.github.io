@@ -77,4 +77,4 @@ dns:
     'geosite:google,youtube,telegram': https://dns.google/dns-query#PROXY
     'geosite:geolocation-!cn': https://dns.google/dns-query#PROXY
 
-  follow-rule: false
+  follow-rule:false
