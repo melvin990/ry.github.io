@@ -83,7 +83,7 @@ dns:
     # 1. 国内全直连（高性能 + 防污染）
     'geosite:cn,private': https://dns.alidns.com/dns-query#DIRECT
     'geosite:apple@cn,icloud@cn': https://dns.alidns.com/dns-query#DIRECT
-    '+.baidu.com,+.taobao.com,+.jd.com,+.douyin.com,+.alipay.com,+.qq.com,+.wechat.com,+.wx': https://dns.alidns.com/dns-query#DIRECT
+    '+.baidu.com,+.taobao.com,+.jd.com,+.pinduoduo.com,+.douyin.com,+.alipay.com,+.qq.com,+.wx.qq.com,+.mmstat.com,+.xiaohongshu.com,+.weibo.com,+.zhihu.com': https://dns.alidns.com/dns-query#DIRECT
 
     # 2. 国外/敏感服务强制走代理（防 ISP 劫持）
     'geosite:google,youtube,telegram,netflix,disney,spotify,facebook,twitter,github,ganjingworld,category-ads-all': https://dns.google/dns-query#PROXY
