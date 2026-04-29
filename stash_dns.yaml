@@ -1,5 +1,5 @@
-name: DNS + Fake-IP 2026 终极稳定版
-desc: 零泄漏 + 抗污染 + 高稳定 | 配合 TUN 模式 | 已优化 Stash/Clash Meta
+name: 🔥 DNS + Fake-IP 2026 顶级优化版（System Proxy）
+desc: 非TUN模式下极致防泄漏 + 抗污染 + 银行兼容优化 | 2026最新实践
 
 dns:
   enable: true
@@ -11,55 +11,68 @@ dns:
   prefer-h3: false
   respect-rules: false
 
-  # DNS 劫持（关键修复）
+  # ==================== DNS 劫持（System Proxy模式下最重要） ====================
   dns-hijack:
     - 'tcp://0.0.0.0:53'
     - 'udp://0.0.0.0:53'
     - 'tcp://0.0.0.0:853'
     - 'udp://0.0.0.0:853'
 
-  # Fake-IP 设置
+  # ==================== Fake-IP 核心强化 ====================
   enhanced-mode: fake-ip
   fake-ip-range: 198.18.0.1/16
   fake-ip-filter-mode: blacklist
+  fake-ip-ttl: 1800                    # 30分钟，平衡缓存与准确性
   fake-ip-filter:
     - '*.local'
     - '*.lan'
     - 'localhost.*'
     - '*.stun.*.*'
+    - '+.stun.l.google.com'
     - '+.msftncsi.com'
     - '+.msftconnecttest.com'
+    - 'captive.apple.com'
     - '+.ptlogin2.qq.com'
     - '+.id.qq.com'
     - '+.weixin.qq.com'
+    - '+.wx.qq.com'
     - 'api.mixpanel.com'
     - '*.doubleclick.net'
     - '*.google-analytics.com'
+    - '*.cn'
+    - '*.com.cn'
+    - '*.net.cn'
+    - 'baidu.com'
+    - 'taobao.com'
+    - 'jd.com'
+    - 'douyin.com'
+    - 'alipay.com'
+    - 'qq.com'
 
-  # 引导 DNS（纯 IP）
+  # ==================== 引导 DNS（纯IP，防循环） ====================
   default-nameserver:
     - 223.5.5.5
     - 223.6.6.6
-    - 119.29.29.29
 
-  # 主 nameserver
+  # ==================== 主 nameserver ====================
   nameserver:
     - https://dns.alidns.com/dns-query#DIRECT
     - https://doh.pub/dns-query#DIRECT
     - https://dns.google/dns-query#PROXY
     - https://cloudflare-dns.com/dns-query#PROXY
 
-  # 兜底 DNS
+  # ==================== 节点域名解析保护 ====================
+  proxy-server-nameserver:
+    - https://dns.alidns.com/dns-query#DIRECT
+    - https://doh.pub/dns-query#DIRECT
+
+  # ==================== 兜底 DNS ====================
   fallback:
     - https://cloudflare-dns.com/dns-query#PROXY
     - https://9.9.9.9/dns-query#PROXY
     - tls://1.1.1.1:853#PROXY
 
-  # 节点域名解析保护
-  proxy-server-nameserver:
-    - https://dns.alidns.com/dns-query#DIRECT
-
-  # Fallback 过滤
+  # ==================== Fallback 严格过滤 ====================
   fallback-filter:
     geoip: true
     geoip-code: CN
@@ -68,20 +81,25 @@ dns:
       - google
       - youtube
       - telegram
+      - netflix
 
-  # 精准 DNS 策略
+  # ==================== 精准 DNS 策略（精简高效版） ====================
   nameserver-policy:
-    # 国内直连
+    # 国内核心域名直连
     'geosite:cn,private': https://dns.alidns.com/dns-query#DIRECT
     'geosite:apple,icloud': https://dns.alidns.com/dns-query#DIRECT
 
-    '+.baidu.com,+.taobao.com,+.jd.com,+.pinduoduo.com,+.douyin.com,+.alipay.com,+.qq.com,+.wx.qq.com,+.mmstat.com,+.xiaohongshu.com,+.weibo.com,+.zhihu.com': https://dns.alidns.com/dns-query#DIRECT
+    # 国内常用App与服务直连DNS
+    '+.baidu.com,+.taobao.com,+.jd.com,+.pinduoduo.com,+.douyin.com,+.alipay.com,+.qq.com,+.wx.qq.com,+.mmstat.com,+.xiaohongshu.com,+.weibo.com,+.zhihu.com,+.meituan.com,+.ele.me,+.ctrip.com': https://dns.alidns.com/dns-query#DIRECT
 
-    # 国外敏感服务走代理 DNS
+    # 国外及敏感服务强制走代理DNS
     'geosite:google,youtube,telegram,netflix,disney,spotify,facebook,twitter,github': https://dns.google/dns-query#PROXY
 
-    # 非中国区域走代理 DNS
+    # 非中国区域全部走代理DNS（防位置泄漏）
     'geosite:geolocation-!cn': https://dns.google/dns-query#PROXY
 
-    # 追踪域名走安全 DNS
+    # 追踪与广告域名走安全DNS
     '+.analytics.google.com,+.doubleclick.net,+.mixpanel.com': https://9.9.9.9/dns-query#PROXY
+
+  # ==================== 其他高级设置 ====================
+  follow-rule: false
