@@ -1,98 +1,87 @@
 name: DNS + Fake-IP 2026 终极稳定版
-desc: 2026 推荐 | 零泄漏 + 抗污染 + 低指纹 + 高稳定 | 配合机场白名单规则 + TUN 模式 | 已按 Clash Meta / Stash / mihomo 最新实践优化
+desc: 零泄漏 + 抗污染 + 高稳定 | 配合 TUN 模式 | 已优化 Stash/Clash Meta
 
 dns:
-  enable: true                  # 生产环境建议保持注释（由 Stash/Clash 自动启用）
-  listen: 0.0.0.0:53             # TUN 模式下推荐 0.0.0.0，系统级劫持更彻底
-  ipv6: false                    # 关闭 IPv6，显著降低指纹 + 减少不必要解析
-  use-system-hosts: false        # 关闭系统 hosts，防止运营商/系统污染
-  use-hosts: true                # 仅使用配置内 hosts，保证可控
-  cache-algorithm: arc           # ARC 算法：更高命中率 + 更低内存占用（2026 推荐）
-  prefer-h3: false               # 强烈推荐关闭 DoH3/QUIC（稳定性优先）
-                                 # QUIC 虽然加密混淆，但国内网络下极易超时、丢包，反而增加延迟和指纹风险
-  respect-rules: false           # Fake-IP 模式下必须为 false
-                                 # 严格按 nameserver-policy 执行，避免 routing rules 干扰导致循环或泄漏
-  dns-hijack:
-    - tcp/53
-    - udp/53
-    - tcp/853                    # DoT
-    - udp/853
-    # tcp/443 已删除（避免劫持正常 HTTPS 流量导致证书错误或崩溃）
+  enable: true
+  listen: 0.0.0.0:53
+  ipv6: false
+  use-system-hosts: false
+  use-hosts: true
+  cache-algorithm: arc
+  prefer-h3: false
+  respect-rules: false
 
-  # ==================== Fake-IP 核心强化（黑客级防泄漏） ====================
-  enhanced-mode: fake-ip         # Stash/Clash Meta 官方推荐模式，零真实 IP 泄漏
-  fake-ip-range: 198.18.0.1/16   # 标准 RFC 2544 测试范围，兼容性最佳
-  fake-ip-filter-mode: blacklist # 黑名单模式：不在列表内的域名全部返回 Fake-IP
+  # DNS 劫持（关键修复）
+  dns-hijack:
+    - 'tcp://0.0.0.0:53'
+    - 'udp://0.0.0.0:53'
+    - 'tcp://0.0.0.0:853'
+    - 'udp://0.0.0.0:853'
+
+  # Fake-IP 设置
+  enhanced-mode: fake-ip
+  fake-ip-range: 198.18.0.1/16
+  fake-ip-filter-mode: blacklist
   fake-ip-filter:
-    - '*.local'                  # 本地域名
+    - '*.local'
     - '*.lan'
     - 'localhost.*'
-    - '*.stun.*.*'               # 拦截 STUN 穿透，防止 WebRTC 真实 IP 泄漏
-    - '+.msftncsi.com'           # Windows 联网检测（避免 Fake-IP 导致连接判断错误）
+    - '*.stun.*.*'
+    - '+.msftncsi.com'
     - '+.msftconnecttest.com'
-    - '+.ptlogin2.qq.com'        # 必要腾讯登录域名（微信/QQ 登录保护）
+    - '+.ptlogin2.qq.com'
     - '+.id.qq.com'
-    - 'api.mixpanel.com'         # 常见追踪域名
-    - 'workplace.com'            # 企业内网保护
+    - '+.weixin.qq.com'
+    - 'api.mixpanel.com'
     - '*.doubleclick.net'
     - '*.google-analytics.com'
-    # 国内大站已全部移除（交给 routing rules + geosite:cn 处理，避免绕过白名单）
 
-  # ==================== 引导 DNS（必须用纯 IP，避免循环） ====================
+  # 引导 DNS（纯 IP）
   default-nameserver:
-    - 223.5.5.5                  # 阿里 DNS（最稳国内引导）
+    - 223.5.5.5
     - 223.6.6.6
-    - 119.29.29.29               # 腾讯 DNS（备用，纯国内）
+    - 119.29.29.29
 
-  # ==================== 主 nameserver（国内直连 + 国外代理） ====================
+  # 主 nameserver
   nameserver:
-    - https://dns.alidns.com/dns-query#DIRECT   # 阿里 DoH（国内最快）
-    - https://doh.pub/dns-query#DIRECT          # 腾讯 DNSPod（备用）
-    - https://dns.google/dns-query#PROXY        # Google（国外首选）
-
-  # ==================== 兜底 DNS（防泄漏核心） ====================
-  fallback:
-    - https://cloudflare-dns.com/dns-query#PROXY   # Cloudflare（隐私强）
-    - https://9.9.9.9/dns-query#PROXY              # Quad9（安全、阻恶意）
-    - tls://1.1.1.1:853#PROXY                      # Cloudflare DoT（加密备用）
-
-  # ==================== 节点域名解析安全 ====================
-  # 专门用于解析机场服务器地址，防止解析过程被墙嗅探
-  proxy-server-nameserver:
     - https://dns.alidns.com/dns-query#DIRECT
     - https://doh.pub/dns-query#DIRECT
+    - https://dns.google/dns-query#PROXY
+    - https://cloudflare-dns.com/dns-query#PROXY
 
-  # ==================== Fallback 触发条件（严格防污染） ====================
+  # 兜底 DNS
+  fallback:
+    - https://cloudflare-dns.com/dns-query#PROXY
+    - https://9.9.9.9/dns-query#PROXY
+    - tls://1.1.1.1:853#PROXY
+
+  # 节点域名解析保护
+  proxy-server-nameserver:
+    - https://dns.alidns.com/dns-query#DIRECT
+
+  # Fallback 过滤
   fallback-filter:
     geoip: true
     geoip-code: CN
     geosite:
-      - gfw                              # 仅触发国外敏感站点 fallback
-    ipcidr:
-      - 240.0.0.0/4                      # 保留地址
-      - 0.0.0.0/8
-      - 10.0.0.0/8
-      - 127.0.0.0/8
-      - 169.254.0.0/16
-      - 172.16.0.0/12
-      - 192.168.0.0/16                   # 私有网络全部保护，不走 fallback
+      - gfw
+      - google
+      - youtube
+      - telegram
 
-  # ==================== 精准策略（黑客级域名分流） ====================
-  # 匹配顺序非常重要：国内规则放前面，国外兜底放后面
+  # 精准 DNS 策略
   nameserver-policy:
-    # 1. 国内全直连（高性能 + 防污染）
+    # 国内直连
     'geosite:cn,private': https://dns.alidns.com/dns-query#DIRECT
-    'geosite:apple@cn,icloud@cn': https://dns.alidns.com/dns-query#DIRECT
+    'geosite:apple,icloud': https://dns.alidns.com/dns-query#DIRECT
+
     '+.baidu.com,+.taobao.com,+.jd.com,+.pinduoduo.com,+.douyin.com,+.alipay.com,+.qq.com,+.wx.qq.com,+.mmstat.com,+.xiaohongshu.com,+.weibo.com,+.zhihu.com': https://dns.alidns.com/dns-query#DIRECT
 
-    # 2. 国外/敏感服务强制走代理（防 ISP 劫持）
-    'geosite:google,youtube,telegram,netflix,disney,spotify,facebook,twitter,github,ganjingworld,category-ads-all': https://dns.google/dns-query#PROXY
+    # 国外敏感服务走代理 DNS
+    'geosite:google,youtube,telegram,netflix,disney,spotify,facebook,twitter,github': https://dns.google/dns-query#PROXY
 
-    # 3. 非中国区域名兜底走代理 DNS（2026 极致防位置泄漏）
+    # 非中国区域走代理 DNS
     'geosite:geolocation-!cn': https://dns.google/dns-query#PROXY
 
-    # 4. 额外隐私保护（追踪域名强制走安全 DNS）
+    # 追踪域名走安全 DNS
     '+.analytics.google.com,+.doubleclick.net,+.mixpanel.com': https://9.9.9.9/dns-query#PROXY
-
-  # ==================== 其他高级选项 ====================
-  follow-rule: false               # 保持关闭（Fake-IP + 白名单规则下开启会增加延迟并可能导致递归）
