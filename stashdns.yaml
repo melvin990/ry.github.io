@@ -8,8 +8,8 @@ dns:
   use-system-hosts: "false"
   use-hosts: true
   cache-algorithm: arc
-  prefer-h3: "false"
-  respect-rules: "false"
+  # prefer-h3: "false"
+  # respect-rules: "false"
 
   dns-hijack:
     - 'tcp://0.0.0.0:53'
@@ -39,6 +39,7 @@ dns:
     - '*.google-analytics.com'
     - '*.cn'
     - 'baidu.com'
+    - 'wechat.com'
     - 'taobao.com'
     - 'jd.com'
     - 'douyin.com'
@@ -77,4 +78,4 @@ dns:
     'geosite:google,youtube,telegram': https://dns.google/dns-query#PROXY
     'geosite:geolocation-!cn': https://dns.google/dns-query#PROXY
 
-  follow-rule: "false"
+  # follow-rule: "false"
