@@ -1,0 +1,156 @@
+1:
+dns:
+  enable: true
+  listen: 0.0.0.0:53
+  ipv6: false
+  use-system-hosts: false
+  use-hosts: true
+  cache-algorithm: arc
+  # 删除了争议项 prefer-h3 和 respect-rules
+
+  dns-hijack:
+    - 'tcp://0.0.0.0:53'
+    - 'udp://0.0.0.0:53'
+    - 'tcp://0.0.0.0:853'
+    - 'udp://0.0.0.0:853'
+
+  enhanced-mode: fake-ip
+  fake-ip-range: 198.18.0.1/16
+  fake-ip-filter-mode: blacklist
+  fake-ip-ttl: 1800
+
+  fake-ip-filter:
+    - '*.local'
+    - '*.lan'
+    - 'localhost.*'
+    - '*.stun.*.*'
+    - '+.stun.l.google.com'
+    - '+.msftncsi.com'
+    - '+.msftconnecttest.com'
+    - 'captive.apple.com'
+    - '+.ptlogin2.qq.com'
+    - '+.id.qq.com'
+    - '+.weixin.qq.com'
+    - 'api.mixpanel.com'
+    - '*.doubleclick.net'
+    - '*.google-analytics.com'
+    - '*.cn'
+    - '+.baidu.com'
+    - '+.taobao.com'
+    - '+.jd.com'
+    - '+.douyin.com'
+    - '+.alipay.com'
+    - '+.qq.com'
+
+  default-nameserver:
+    - 223.5.5.5
+    - 223.6.6.6
+
+  nameserver:
+    - https://dns.alidns.com/dns-query#DIRECT
+    - https://doh.pub/dns-query#DIRECT
+
+  proxy-server-nameserver:
+    - https://dns.alidns.com/dns-query#DIRECT
+
+  fallback:
+    - https://cloudflare-dns.com/dns-query#PROXY
+    - https://9.9.9.9/dns-query#PROXY
+
+  fallback-filter:
+    geoip: true
+    geoip-code: CN
+    geosite:
+      - gfw
+      - google
+      - youtube
+      - telegram
+
+  nameserver-policy:
+    'geosite:cn,private': https://dns.alidns.com/dns-query#DIRECT
+    'geosite:apple,icloud': https://dns.alidns.com/dns-query#DIRECT
+    '+.baidu.com,+.taobao.com,+.jd.com,+.douyin.com,+.alipay.com,+.qq.com,+.xiaohongshu.com': https://dns.alidns.com/dns-query#DIRECT
+    'geosite:google,youtube,telegram': https://dns.google/dns-query#PROXY
+    'geosite:geolocation-!cn': https://dns.google/dns-query#PROXY
+
+  # 删除了争议项 follow-rule
+
+
+
+
+2:dns:
+  enable: true
+  listen: 0.0.0.0:53
+  ipv6: false
+  use-system-hosts: false
+  use-hosts: true
+  cache-algorithm: arc
+  # 删除了争议项 prefer-h3 和 respect-rules
+
+  dns-hijack:
+    - 'tcp://0.0.0.0:53'
+    - 'udp://0.0.0.0:53'
+    - 'tcp://0.0.0.0:853'
+    - 'udp://0.0.0.0:853'
+
+  enhanced-mode: fake-ip
+  fake-ip-range: 198.18.0.1/16
+  fake-ip-filter-mode: blacklist
+  fake-ip-ttl: 1800
+
+  fake-ip-filter:
+    - '*.local'
+    - '*.lan'
+    - 'localhost.*'
+    - '*.stun.*.*'
+    - '+.stun.l.google.com'
+    - '+.msftncsi.com'
+    - '+.msftconnecttest.com'
+    - 'captive.apple.com'
+    - '+.ptlogin2.qq.com'
+    - '+.id.qq.com'
+    - '+.weixin.qq.com'
+    - 'api.mixpanel.com'
+    - '*.doubleclick.net'
+    - '*.google-analytics.com'
+    - '*.cn'
+    - '+.baidu.com'
+    - '+.taobao.com'
+    - '+.jd.com'
+    - '+.douyin.com'
+    - '+.alipay.com'
+    - '+.qq.com'
+
+  default-nameserver:
+    - 223.5.5.5
+    - 223.6.6.6
+
+  nameserver:
+    - https://dns.alidns.com/dns-query#DIRECT
+    - https://doh.pub/dns-query#DIRECT
+
+  proxy-server-nameserver:
+    - https://dns.alidns.com/dns-query#DIRECT
+
+  fallback:
+    - https://cloudflare-dns.com/dns-query#PROXY
+    - https://9.9.9.9/dns-query#PROXY
+
+  fallback-filter:
+    geoip: true
+    geoip-code: CN
+    geosite:
+      - gfw
+      - google
+      - youtube
+      - telegram
+
+  nameserver-policy:
+    'geosite:cn,private': https://dns.alidns.com/dns-query#DIRECT
+    'geosite:apple,icloud': https://dns.alidns.com/dns-query#DIRECT
+    '+.baidu.com,+.taobao.com,+.jd.com,+.douyin.com,+.alipay.com,+.qq.com,+.xiaohongshu.com': https://dns.alidns.com/dns-query#DIRECT
+    'geosite:google,youtube,telegram': https://dns.google/dns-query#PROXY
+    'geosite:geolocation-!cn': https://dns.google/dns-query#PROXY
+
+  # 删除了争议项 follow-rule
+
