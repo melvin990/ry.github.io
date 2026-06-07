@@ -1,43 +1,49 @@
-name: DNS-FakeIP-Final-Fix-v2
-desc: 彻底解决布尔值解析错误
+name: DNS-FakeIP-Final
+desc: 20260607   
 
 dns:
-  enable: true
-  listen: 0.0.0.0:53
-  ipv6: "false"
-  use-system-hosts: "false"
-  use-hosts: true
-  cache-algorithm: arc
-  # prefer-h3: "false"
-  # respect-rules: "false"
+  enable: true                    # 启用 Stash 内置 DNS 模块（必须开启，否则不会接管 DNS）
+  listen: 0.0.0.0:53              # DNS 监听地址和端口，本地所有设备均可使用 53 端口查询
+  
+  ipv6: false                  # 全局关闭 IPv6 DNS 解析（字符串格式，兼容性更好）
+  use-system-hosts: false       # 不使用系统 /etc/hosts 文件内容
+  use-hosts: true                 # 启用 Stash 自身配置文件中的 [hosts] 段规则
+  cache-algorithm: arc            # DNS 缓存算法使用 ARC（比 LRU 更先进，命中率更高）
+  
+  # prefer-h3: "false"            # 是否优先使用 HTTP/3（QUIC）查询 DoH，已注释
+  # respect-rules: "false"        # 是否让 nameserver-policy 严格遵守分流规则，已注释
 
+  # ==================== DNS 劫持 ====================
   dns-hijack:
-    - 'tcp://0.0.0.0:53'
-    - 'udp://0.0.0.0:53'
-    - 'tcp://0.0.0.0:853'
-    - 'udp://0.0.0.0:853'
+    - 'tcp://0.0.0.0:53'          # 劫持本机 TCP 53 端口 DNS 请求
+    - 'udp://0.0.0.0:53'          # 劫持本机 UDP 53 端口 DNS 请求（最重要）
+    - 'tcp://0.0.0.0:853'         # 劫持 DoT（DNS over TLS）853 端口
+    - 'udp://0.0.0.0:853'         # 劫持 DoT 853 端口
+  # 作用：防止系统或 App 绕过 Stash 直接查询 DNS，实现真正的 DNS 接管
 
-  enhanced-mode: fake-ip
-  fake-ip-range: 198.18.0.1/16
-  fake-ip-filter-mode: blacklist
-  fake-ip-ttl: 1800
+  # ==================== Fake-IP 模式核心配置 ====================
+  enhanced-mode: fake-ip          # 核心模式：Fake-IP（推荐模式，速度快 + 兼容性好）
+  fake-ip-range: 198.18.0.1/16    # Fake-IP 地址池（保留地址段，不会和公网冲突）
+  fake-ip-filter-mode: blacklist  # 黑名单模式：不在 filter 里的域名才使用 Fake-IP
+  fake-ip-ttl: 1800               # Fake-IP 缓存有效期 1800 秒（30 分钟）
 
+  # ==================== Fake-IP 黑名单过滤 ====================
   fake-ip-filter:
-    - '*.local'
+    - '*.local'                   # 本地 mDNS 域名
     - '*.lan'
     - 'localhost.*'
-    - '*.stun.*.*'
+    - '*.stun.*.*'                # STUN 服务器（音视频通话必须直连）
     - '+.stun.l.google.com'
-    - '+.msftncsi.com'
+    - '+.msftncsi.com'            # Windows 网络连通性检测
     - '+.msftconnecttest.com'
-    - 'captive.apple.com'
-    - '+.ptlogin2.qq.com'
+    - 'captive.apple.com'         # Apple 捕获门户检测
+    - '+.ptlogin2.qq.com'         # QQ 登录相关
     - '+.id.qq.com'
-    - '+.weixin.qq.com'
-    - 'api.mixpanel.com'
-    - '*.doubleclick.net'
+    - '+.weixin.qq.com'           # 微信相关
+    - 'api.mixpanel.com'          # 数据分析
+    - '*.doubleclick.net'         # 广告
     - '*.google-analytics.com'
-    - '*.cn'
+    - '*.cn'                      # 所有 .cn 域名直连
     - 'baidu.com'
     - 'wechat.com'
     - 'taobao.com'
@@ -45,37 +51,53 @@ dns:
     - 'douyin.com'
     - 'alipay.com'
     - 'qq.com'
+  # 作用：这些域名强制走真实 IP，避免 Fake-IP 导致部分国内服务异常（如登录、支付、检测等）
 
+  # ==================== 默认 & 主 DNS 配置 ====================
   default-nameserver:
-    - 223.5.5.5
+    - 223.5.5.5                   # 阿里 DNS（用于解析 nameserver 本身的域名）
     - 223.6.6.6
 
   nameserver:
-    - https://dns.alidns.com/dns-query#DIRECT
-    - https://doh.pub/dns-query#DIRECT
-    - https://dns.google/dns-query#PROXY
+    - https://dns.alidns.com/dns-query#DIRECT     # 国内 DoH（直连）
+    - https://doh.pub/dns-query#DIRECT            # 国内 DoH（直连）
+    - https://dns.google/dns-query#PROXY          # Google DoH（走代理）
+  # 优先级从上到下，前面解析成功就不再往下走
 
   proxy-server-nameserver:
     - https://dns.alidns.com/dns-query#DIRECT
+  # 专门用于解析「代理服务器域名」（节点域名）的 DNS，必须直连，否则容易循环或解析失败
 
+  # ==================== Fallback 兜底 DNS ====================
   fallback:
     - https://cloudflare-dns.com/dns-query#PROXY
     - https://9.9.9.9/dns-query#PROXY
+  # 当 nameserver 全部失败时，使用这些兜底（走代理）
 
   fallback-filter:
-    geoip: true
-    geoip-code: CN
+    geoip: true                   # 启用地理位置过滤
+    geoip-code: CN                # 中国 IP 走直连 DNS（fallback-filter 主要控制 fallback 的使用条件）
     geosite:
-      - gfw
+      - gfw                       # GFW 列表内的域名走 fallback（即走代理 DNS）
       - google
       - youtube
       - telegram
 
+  # ==================== 精准分流策略 ====================
   nameserver-policy:
+    # 国内 + 私有网络强制直连 DNS
     'geosite:cn,private': https://dns.alidns.com/dns-query#DIRECT
+    
+    # Apple 服务直连 DNS（提升 iOS/macOS 体验）
     'geosite:apple,icloud': https://dns.alidns.com/dns-query#DIRECT
+    
+    # 常见国内大厂直连 DNS
     '+.baidu.com,+.taobao.com,+.jd.com,+.douyin.com,+.alipay.com,+.qq.com,+.xiaohongshu.com': https://dns.alidns.com/dns-query#DIRECT
+    
+    # 国外主流服务走代理 DNS
     'geosite:google,youtube,telegram': https://dns.google/dns-query#PROXY
+    
+    # 非中国地区全部走 Google DNS（代理）
     'geosite:geolocation-!cn': https://dns.google/dns-query#PROXY
 
-  # follow-rule: "false"
+  # follow-rule: "false"          # 是否跟随 Clash 的 rule 分流规则（已注释，默认行为更激进）
