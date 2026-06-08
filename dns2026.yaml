@@ -32,14 +32,14 @@ dns:
   fake-ip-filter:
     # === 必须使用真实 IP 的域名（放最前面，优先级最高）===
     - RULE-SET,private,real-ip
-    - RULE-SET,app,real-ip
+    - RULE-SET,applications,real-ip
     - RULE-SET,direct,real-ip           # Loyalsoldier 的国内直连规则集
     - RULE-SET,cncidr,real-ip               # 部分配置也叫 cn，视你实际命名而定
     - RULE-SET,lancidr,real-ip
     - GEOSITE,cn,real-ip                # 如果你用了 GEOSITE
     - RULE-SET,apple,real-ip
     - RULE-SET,icloud,real-ip
-
+    
     # 本地网络与常用检测服务
     - DOMAIN-SUFFIX,lan,real-ip
     - DOMAIN-SUFFIX,local,real-ip
@@ -59,6 +59,7 @@ dns:
     - RULE-SET,proxy,fake-ip
     - RULE-SET,google,fake-ip
     - RULE-SET,telegramcidr,fake-ip
+    - RULE-SET,tldnotcn,real-ip
 
     # === 兜底：其余所有域名都使用 Fake-IP ===
     - MATCH,fake-ip
