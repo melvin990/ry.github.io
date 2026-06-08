@@ -1,0 +1,114 @@
+name: DNS-FakeIP-Rule-Final
+desc: 20260608
+
+dns:
+  enable: true                    # 启用 Stash 内置 DNS 
+  listen: 0.0.0.0:53              # DNS 监听地址和端口，本地所有设备均可使用 53 端口查询
+  
+  ipv6: false                   # 全局关闭 IPv6 DNS 解析（字符串格式，兼容性更好）
+  use-system-hosts: false       # 不使用系统 /etc/hosts 文件内容
+  use-hosts: true                 # 启用 Stash 
+  cache-algorithm: arc            # DNS 缓存算法使用 ARC（比 LRU 更先进，命中率更高）
+  
+  prefer-h3: true                    # 优先使用 HTTP/3（QUIC），速度更快
+  respect-rules: true                # 让 DNS 分流更严格遵循 Rule 规则（推荐开启）
+
+  # ==================== DNS 劫持 ====================
+  dns-hijack:
+    - 'tcp://0.0.0.0:53'          # 劫持本机 TCP 53 端口 DNS 请求
+    - 'udp://0.0.0.0:53'          # 劫持本机 UDP 53 端口 DNS 请求（最重要）
+    - 'tcp://0.0.0.0:853'
+    - 'udp://0.0.0.0:853'
+    - 'tcp://0.0.0.0:443'            # 补充 DoH 常用端口
+    - 'udp://0.0.0.0:443'
+  # 作用：防止系统或 App 绕过 Stash 直接查询 DNS，实现真正的 DNS 接管
+  # ==================== Fake-IP 核心配置 ====================
+  enhanced-mode: fake-ip          # 核心模式：Fake-IP（推荐模式，速度快 + 兼容性好）
+  fake-ip-range: 198.18.0.1/16    # Fake-IP 地址池（保留地址段，不会和公网冲突）
+  fake-ip-filter-mode: rule  # rule 模式：fake-ip-filter 变成类似路由规则的列表，自上而下匹配
+  fake-ip-ttl: 1800              # Fake-IP 缓存有效期 1800 秒（30 分钟）
+
+  # ==================== fake-ip-filter 变成类似路由规则的列表，自上而下匹配===================
+  fake-ip-filter:
+    # === 必须使用真实 IP 的域名（放最前面，优先级最高）===
+    - RULE-SET,private,real-ip
+    - RULE-SET,app,real-ip
+    - RULE-SET,direct,real-ip           # Loyalsoldier 的国内直连规则集
+    - RULE-SET,cncidr,real-ip               # 部分配置也叫 cn，视你实际命名而定
+    - RULE-SET,lancidr,real-ip
+    - GEOSITE,cn,real-ip                # 如果你用了 GEOSITE
+    - RULE-SET,apple,real-ip
+    - RULE-SET,icloud,real-ip
+
+    # 本地网络与常用检测服务
+    - DOMAIN-SUFFIX,lan,real-ip
+    - DOMAIN-SUFFIX,local,real-ip
+    - DOMAIN,localhost,real-ip
+    - DOMAIN-SUFFIX,msftncsi.com,real-ip
+    - DOMAIN-SUFFIX,msftconnecttest.com,real-ip
+    - DOMAIN,captive.apple.com,real-ip
+    - DOMAIN,time.apple.com,real-ip
+
+    # STUN / 音视频 / 游戏（防止 NAT 穿透失败）
+    - DOMAIN-SUFFIX,stun.l.google.com,real-ip
+    - DOMAIN-KEYWORD,stun,real-ip
+    - DOMAIN-SUFFIX,stun,real-ip
+
+    # === 国外重要服务建议走 Fake-IP（加速解析）===
+    - RULE-SET,gfw,fake-ip
+    - RULE-SET,proxy,fake-ip
+    - RULE-SET,google,fake-ip
+    - RULE-SET,telegramcidr,fake-ip
+
+    # === 兜底：其余所有域名都使用 Fake-IP ===
+    - MATCH,fake-ip
+  # 作用：这些域名强制走真实 IP，避免 Fake-IP 导致部分国内服务异常（如登录、支付、检测等）
+  # ==================== 默认 & 主 DNS ====================
+  default-nameserver:
+    - 223.5.5.5                   # 阿里 DNS（用于解析 nameserver 本身的域名）
+    - 223.6.6.6
+
+  nameserver:
+    - https://dns.alidns.com/dns-query#DIRECT
+    - https://doh.pub/dns-query#DIRECT
+    - https://dns.google/dns-query#PROXY
+
+  proxy-server-nameserver:
+    - https://dns.alidns.com/dns-query#DIRECT
+    - https://doh.pub/dns-query#DIRECT
+  # 专门用于解析「代理服务器域名」（节点域名）的 DNS，必须直连，否则容易循环或解析失败
+  # ==================== Fallback 兜底 ====================
+  fallback:
+    - https://cloudflare-dns.com/dns-query#PROXY
+    - https://9.9.9.9/dns-query#PROXY
+  # 当 nameserver 全部失败时，使用这些兜底（走代理）
+  fallback-filter:
+    geoip: true
+    geoip-code: CN
+    geosite:
+      - gfw
+      - google
+      - youtube
+      - telegram
+      - twitter
+      - facebook
+      - ganjingworld
+    ipcidr:
+      - 240.0.0.0/4
+
+  # ==================== 精准分流策略 ====================
+  nameserver-policy:
+    # 国内 + 私有网络强制直连 DNS
+    'geosite:cn,private': https://dns.alidns.com/dns-query#DIRECT
+    
+    # Apple 服务
+    'geosite:apple,icloud': https://dns.alidns.com/dns-query#DIRECT
+    
+    # 国内大厂
+    '+.baidu.com,+.taobao.com,+.jd.com,+.douyin.com,+.alipay.com,+.qq.com,+.weixin.qq.com,+.bilibili.com,+.xiaohongshu.com': https://dns.alidns.com/dns-query#DIRECT
+    
+    # 国外主流服务走代理 DNS
+    'geosite:google,youtube,telegram,twitter,ganjingworld': https://dns.google/dns-query#PROXY
+    
+    # 非中国地区全部走 Google DNS（代理）
+    'geosite:geolocation-!cn': https://dns.google/dns-query#PROXY
