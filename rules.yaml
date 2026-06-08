@@ -63,8 +63,14 @@ rule-providers:
     url: https://cdn.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/lancidr.txt
     interval: 86400
 
-rules: #!replace
-  # ==================== 高优先级自定义规则 ====================
+ules: #!replace
+  # ==================== 最高优先级 ====================
+  - RULE-SET,reject,🛑全球拦截                    # 广告拦截尽量靠前
+
+  - DOMAIN,clash.razord.top,🧱国内网址,no-resolve
+  - DOMAIN,yacd.haishan.me,🧱国内网址,no-resolve
+
+  # 自定义高优先规则（保持你原来的）
   - GEOSITE,category-ai-!cn,֎谷歌-AI
   - GEOSITE,google-play,֎谷歌-AI
   - DOMAIN-SUFFIX,crisp.chat,֎谷歌-AI
@@ -76,28 +82,7 @@ rules: #!replace
   - GEOSITE,github,🌍国外媒体
   - DOMAIN-SUFFIX,sagepub.com,🌍国外媒体
 
-  - GEOSITE,microsoft@cn,🧱国内网址
-  - GEOSITE,apple-cn,🧱国内网址
-  - GEOSITE,steam@cn,🧱国内网址
-  - GEOSITE,category-games@cn,🧱国内网址
-  - GEOSITE,xiaohongshu,🧱国内网址
-  - GEOSITE,CN,🧱国内网址
-  - DOMAIN-SUFFIX,cn,🧱国内网址
-
-  - GEOSITE,microsoft,Ⓜ️微软服务
-
-  # ==================== 自定义直连 ====================
-  - DOMAIN-SUFFIX,processon.com,🎯不用代理
-  - DOMAIN,app.adjust.com,🎯不用代理
-  - DOMAIN,bdtj.tagtic.cn,🎯不用代理
-  - DOMAIN,log.mmstat.com,🎯不用代理
-  - DOMAIN,sycm.mmstat.com,🎯不用代理
-  - DOMAIN-SUFFIX,local,🎯不用代理
-
-  # ==================== 全局拦截（强烈建议使用规则集）================
-  - RULE-SET,reject,🛑全球拦截
-
-  # ==================== 私有地址 & 局域网 ====================
+  # ==================== 私有 & 局域网（非常重要）================
   - RULE-SET,private,🎯不用代理,no-resolve
   - GEOIP,private,🎯不用代理,no-resolve
   - GEOIP,LAN,🎯不用代理,no-resolve
@@ -110,11 +95,20 @@ rules: #!replace
   - RULE-SET,icloud,🍎苹果服务
   - RULE-SET,apple,🍎苹果服务,no-resolve
 
-  # ==================== 应用分流 & 国内直连 ====================
+  # ==================== 国内直连 ====================
+  - GEOSITE,microsoft@cn,🧱国内网址
+  - GEOSITE,apple-cn,🧱国内网址
+  - GEOSITE,steam@cn,🧱国内网址
+  - GEOSITE,category-games@cn,🧱国内网址
+  - GEOSITE,xiaohongshu,🧱国内网址
+  - GEOSITE,CN,🧱国内网址
+  - DOMAIN-SUFFIX,cn,🧱国内网址
+
+  - GEOSITE,microsoft,Ⓜ️微软服务
   - RULE-SET,app,🎯不用代理
   - RULE-SET,direct,🎯不用代理
 
-  # ==================== 国外媒体 & 代理 ====================
+  # ==================== 国外媒体 ====================
   - RULE-SET,google,🌍国外媒体
   - RULE-SET,proxy,🌍国外媒体
   - RULE-SET,gfw,🌍国外媒体
@@ -124,8 +118,8 @@ rules: #!replace
   - RULE-SET,cncidr,🧱国内网址,no-resolve
   - RULE-SET,lancidr,🧱国内网址,no-resolve
 
-  # ==================== 国内 IP ====================
+  # ==================== 国内 IP（靠后）================
   - GEOIP,CN,🧱国内网址,no-resolve
 
-  # ==================== 兜底规则 ====================
+  # ==================== 兜底 ====================
   - MATCH,🐟境外网站
