@@ -2,6 +2,11 @@ name: STASH-RULES 规则集覆写
 desc: STASH-RULES 2026-6 优化精简版
 
 rule-providers:
+  apps:
+    behavior: domain
+    format: yaml
+    url: https://melvin990.github.io/ry.github.io/app.txt
+    interval: 86400
   applications:
     behavior: domain
     format: yaml
@@ -110,6 +115,7 @@ ules: #!replace
   - DOMAIN-SUFFIX,cn,🧱国内网址
 
   - GEOSITE,microsoft,Ⓜ️微软服务
+  - RULE-SET,apps,🎯不用代理
   - RULE-SET,applications,🎯不用代理
   - RULE-SET,direct,🎯不用代理
 
