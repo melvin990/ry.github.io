@@ -10,8 +10,8 @@ dns:
   use-hosts: true                 # 启用 Stash 
   cache-algorithm: arc            # DNS 缓存算法使用 ARC（比 LRU 更先进，命中率更高）
   
-  prefer-h3: true                    # 优先使用 HTTP/3（QUIC），速度更快
-  respect-rules: true                # 让 DNS 分流更严格遵循 Rule 规则（推荐开启）
+  # prefer-h3: true                    # 优先使用 HTTP/3（QUIC），速度更快
+  # respect-rules: true                # 让 DNS 分流更严格遵循 Rule 规则（推荐开启）
 
   # ==================== DNS 劫持 ====================
   dns-hijack:
